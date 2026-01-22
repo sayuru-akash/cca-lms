@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Terminal, Lock, Mail, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
+import {
+  Terminal,
+  Lock,
+  Mail,
+  Eye,
+  EyeOff,
+  LogIn,
+  AlertCircle,
+} from "lucide-react";
 import {
   Card,
   CardContent,

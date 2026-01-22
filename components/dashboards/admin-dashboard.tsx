@@ -158,8 +158,8 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                         activity.type === "success"
                           ? "bg-terminal-green"
                           : activity.type === "warning"
-                          ? "bg-yellow-400"
-                          : "bg-blue-400"
+                            ? "bg-yellow-400"
+                            : "bg-blue-400"
                       } animate-pulse shrink-0`}
                     />
                     <div className="flex-1 min-w-0">

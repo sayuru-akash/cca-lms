@@ -6,13 +6,14 @@ export function middleware(request: NextRequest) {
 
   // Public routes that don't require authentication
   const isPublicRoute = pathname.startsWith("/auth/");
-  
+
   // Check for session cookie (NextAuth uses this)
-  const sessionToken = request.cookies.get("next-auth.session-token") || 
-                       request.cookies.get("__Secure-next-auth.session-token");
-  
+  const sessionToken =
+    request.cookies.get("next-auth.session-token") ||
+    request.cookies.get("__Secure-next-auth.session-token");
+
   const isLoggedIn = !!sessionToken;
-  
+
   // Root path - redirect to login or dashboard based on auth status
   if (pathname === "/") {
     if (isLoggedIn) {
@@ -22,7 +23,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Protected routes
-  const isProtectedRoute = 
+  const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/programmes") ||
     pathname.startsWith("/students") ||
@@ -36,7 +37,7 @@ export function middleware(request: NextRequest) {
   if (isProtectedRoute && !isLoggedIn) {
     const callbackUrl = encodeURIComponent(pathname + request.nextUrl.search);
     return NextResponse.redirect(
-      new URL(`/auth/login?callbackUrl=${callbackUrl}`, request.url)
+      new URL(`/auth/login?callbackUrl=${callbackUrl}`, request.url),
     );
   }
 
