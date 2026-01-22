@@ -3,7 +3,13 @@
 import { useEffect } from "react";
 import { AlertCircle, Terminal, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Error({
   error,
@@ -38,11 +44,13 @@ export default function Error({
         <CardContent className="space-y-4">
           <div className="rounded-md bg-terminal-darker/80 border border-red-500/20 p-4 font-mono text-sm">
             <p className="text-red-400">
-              <span className="text-terminal-green">$</span> {error.message || "An unexpected error occurred"}
+              <span className="text-terminal-green">$</span>{" "}
+              {error.message || "An unexpected error occurred"}
             </p>
             {error.digest && (
               <p className="text-terminal-text-muted mt-2">
-                <span className="text-terminal-green">$</span> Error ID: {error.digest}
+                <span className="text-terminal-green">$</span> Error ID:{" "}
+                {error.digest}
               </p>
             )}
           </div>
@@ -52,7 +60,11 @@ export default function Error({
               <Terminal className="h-4 w-4" />
               Try Again
             </Button>
-            <Button variant="outline" onClick={() => window.location.href = "/"} className="flex-1 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = "/")}
+              className="flex-1 gap-2"
+            >
               <Home className="h-4 w-4" />
               Go Home
             </Button>

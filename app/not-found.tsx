@@ -1,6 +1,12 @@
 import { Terminal, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import Link from "next/link";
 
 export default function NotFound() {
@@ -29,10 +35,12 @@ export default function NotFound() {
               <span className="text-terminal-green">$</span> Error: ENOENT
             </p>
             <p className="text-terminal-text-muted">
-              <span className="text-terminal-green">$</span> Status: 404 Not Found
+              <span className="text-terminal-green">$</span> Status: 404 Not
+              Found
             </p>
             <p className="text-terminal-text-muted">
-              <span className="text-terminal-green">$</span> Message: The page you&apos;re looking for doesn&apos;t exist
+              <span className="text-terminal-green">$</span> Message: The page
+              you&apos;re looking for doesn&apos;t exist
             </p>
           </div>
 

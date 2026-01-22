@@ -5,6 +5,7 @@ A modern, production-ready Learning Management System with a unique **terminal/h
 ## ✨ Features
 
 ### 🎨 Terminal Aesthetic Design
+
 - **Unique UI**: Complete terminal-inspired interface with green monospace fonts
 - **Matrix-style Effects**: Glow effects, scan lines, and subtle animations
 - **Dark/Light Mode**: Full theme support with seamless switching
@@ -12,6 +13,7 @@ A modern, production-ready Learning Management System with a unique **terminal/h
 - **Responsive**: Fully mobile-friendly design
 
 ### 🚀 Core Functionality
+
 - **Dashboard**: Real-time stats, activity feed, system logs
 - **Course Management**: Create, edit, and monitor courses
 - **Student Management**: Track progress, enrollments, and achievements
@@ -20,11 +22,13 @@ A modern, production-ready Learning Management System with a unique **terminal/h
 - **Settings**: User preferences and system configuration
 
 ### 🎯 User Roles & Permissions
+
 - **Admin**: Full system access and management
 - **Lecturer**: Course and student management
 - **Student**: View courses and track progress
 
 ### 🔐 Security Features
+
 - NextAuth.js v5 authentication
 - Row-Level Security (RLS) with Prisma
 - Secure file uploads with R2
@@ -45,27 +49,24 @@ A modern, production-ready Learning Management System with a unique **terminal/h
 ## 🎨 Design System
 
 ### Color Palette
+
 ```css
 /* Light Mode */
---terminal-green: #22c55e
---terminal-green-light: #4ade80
---terminal-green-dark: #16a34a
---background: #f0f4f0
---terminal-card: rgba(255, 255, 255, 0.8)
-
-/* Dark Mode */
---terminal-green: #22c55e
---terminal-darker: #050805
---terminal-dark: #0a0f0a
---terminal-card: rgba(10, 15, 10, 0.8)
+--terminal-green: #22c55e --terminal-green-light: #4ade80
+  --terminal-green-dark: #16a34a --background: #f0f4f0
+  --terminal-card: rgba(255, 255, 255, 0.8) /* Dark Mode */
+  --terminal-green: #22c55e --terminal-darker: #050805 --terminal-dark: #0a0f0a
+  --terminal-card: rgba(10, 15, 10, 0.8);
 ```
 
 ### Typography
+
 - **Primary Font**: Geist Mono (monospace)
 - **Terminal Glow Effect**: Applied to headings
 - **Consistent Spacing**: 8px grid system
 
 ### Components
+
 - **Button**: 4 variants (default, outline, ghost, danger)
 - **Card**: Glowing borders with backdrop blur
 - **Input**: Terminal-style with glow focus
@@ -157,6 +158,7 @@ cca-lms/
 The application uses `next-themes` for theme management with seamless dark/light mode switching.
 
 ### Theme Features
+
 - **System Preference Detection**: Automatically detects OS theme
 - **Persistent**: Theme choice saved to localStorage
 - **No Flash**: Prevents white flash on page load
@@ -166,17 +168,21 @@ The application uses `next-themes` for theme management with seamless dark/light
 ## 🔥 Special Effects
 
 ### Scan Line Effect
+
 Subtle moving line across the screen for terminal effect
 
 ### Glow Effect
+
 Terminal green glow on interactive elements
 
 ### Hover States
+
 All cards and buttons feature glow effects on hover
 
 ## 📱 Pages Overview
 
 ### Dashboard (/)
+
 - Real-time statistics cards
 - Active courses list with progress
 - Live activity feed
@@ -185,6 +191,7 @@ All cards and buttons feature glow effects on hover
 - Terminal-style system logs
 
 ### Courses (/courses)
+
 - Course grid with cards
 - Search and filter functionality
 - Student enrollment stats
@@ -192,6 +199,7 @@ All cards and buttons feature glow effects on hover
 - Create/manage courses
 
 ### Students (/students)
+
 - Student directory
 - Progress tracking
 - Enrollment management
@@ -199,6 +207,7 @@ All cards and buttons feature glow effects on hover
 - Activity history
 
 ### Analytics (/analytics)
+
 - Key performance metrics
 - Top performing courses
 - Revenue tracking
@@ -206,6 +215,7 @@ All cards and buttons feature glow effects on hover
 - Interactive charts
 
 ### Resources (/resources)
+
 - File management
 - Storage statistics
 - Download tracking
@@ -213,6 +223,7 @@ All cards and buttons feature glow effects on hover
 - Upload functionality
 
 ### Settings (/settings)
+
 - Profile management
 - Notification preferences
 - Security settings
@@ -222,6 +233,7 @@ All cards and buttons feature glow effects on hover
 ## 🎯 Best Practices
 
 ### Component Development
+
 - Use TypeScript for type safety
 - Follow atomic design principles
 - Implement proper error boundaries
@@ -229,6 +241,7 @@ All cards and buttons feature glow effects on hover
 - Optimize with React.memo for complex components
 
 ### Styling
+
 - Use Tailwind utility classes
 - Follow the design system colors
 - Maintain consistent spacing
@@ -236,6 +249,7 @@ All cards and buttons feature glow effects on hover
 - Test on multiple screen sizes
 
 ### Performance
+
 - Lazy load heavy components
 - Optimize images with next/image
 - Use Suspense boundaries

@@ -94,7 +94,8 @@ export function Footer() {
               © {currentYear} CCA_LMS. All rights reserved.
             </p>
             <p className="text-xs font-mono text-terminal-text-muted">
-              <span className="text-terminal-green">$</span> Built with Next.js, TypeScript & Prisma
+              <span className="text-terminal-green">$</span> Built with Next.js,
+              TypeScript & Prisma
             </p>
           </div>
         </div>

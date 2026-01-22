@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { BookOpen, Search, Filter, Plus, Users, Clock } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -11,7 +17,8 @@ const courses = [
   {
     id: 1,
     title: "Advanced JavaScript Patterns",
-    description: "Master design patterns, async programming, and modern JS techniques",
+    description:
+      "Master design patterns, async programming, and modern JS techniques",
     students: 234,
     modules: 12,
     duration: "8 weeks",
@@ -22,7 +29,8 @@ const courses = [
   {
     id: 2,
     title: "Python for Data Science",
-    description: "Learn data analysis, visualization, and machine learning with Python",
+    description:
+      "Learn data analysis, visualization, and machine learning with Python",
     students: 456,
     modules: 16,
     duration: "12 weeks",
@@ -122,40 +130,69 @@ export default function CoursesPage() {
         {/* Courses Grid */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {courses.map((course) => (
-            <Card key={course.id} className="group hover:scale-105 transition-all">
+            <Card
+              key={course.id}
+              className="group hover:scale-105 transition-all"
+            >
               <CardHeader>
                 <div className="flex items-start justify-between mb-2">
-                  <Badge variant={course.level === "Beginner" ? "info" : course.level === "Intermediate" ? "warning" : "danger"}>
+                  <Badge
+                    variant={
+                      course.level === "Beginner"
+                        ? "info"
+                        : course.level === "Intermediate"
+                          ? "warning"
+                          : "danger"
+                    }
+                  >
                     {course.level}
                   </Badge>
                   <Badge variant="success">Active</Badge>
                 </div>
                 <CardTitle className="line-clamp-1">{course.title}</CardTitle>
-                <CardDescription className="line-clamp-2">{course.description}</CardDescription>
+                <CardDescription className="line-clamp-2">
+                  {course.description}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2 rounded-md border border-terminal-green/20 bg-terminal-darker/50">
                     <Users className="h-4 w-4 mx-auto mb-1 text-terminal-green" />
-                    <p className="text-xs font-mono text-terminal-text-muted">{course.students}</p>
-                    <p className="text-[10px] font-mono text-terminal-text-muted">Students</p>
+                    <p className="text-xs font-mono text-terminal-text-muted">
+                      {course.students}
+                    </p>
+                    <p className="text-[10px] font-mono text-terminal-text-muted">
+                      Students
+                    </p>
                   </div>
                   <div className="p-2 rounded-md border border-terminal-green/20 bg-terminal-darker/50">
                     <BookOpen className="h-4 w-4 mx-auto mb-1 text-terminal-green" />
-                    <p className="text-xs font-mono text-terminal-text-muted">{course.modules}</p>
-                    <p className="text-[10px] font-mono text-terminal-text-muted">Modules</p>
+                    <p className="text-xs font-mono text-terminal-text-muted">
+                      {course.modules}
+                    </p>
+                    <p className="text-[10px] font-mono text-terminal-text-muted">
+                      Modules
+                    </p>
                   </div>
                   <div className="p-2 rounded-md border border-terminal-green/20 bg-terminal-darker/50">
                     <Clock className="h-4 w-4 mx-auto mb-1 text-terminal-green" />
-                    <p className="text-xs font-mono text-terminal-text-muted">{course.duration}</p>
-                    <p className="text-[10px] font-mono text-terminal-text-muted">Duration</p>
+                    <p className="text-xs font-mono text-terminal-text-muted">
+                      {course.duration}
+                    </p>
+                    <p className="text-[10px] font-mono text-terminal-text-muted">
+                      Duration
+                    </p>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-mono text-terminal-text-muted">Progress</span>
-                    <span className="text-xs font-mono text-terminal-green font-semibold">{course.completion}%</span>
+                    <span className="text-xs font-mono text-terminal-text-muted">
+                      Progress
+                    </span>
+                    <span className="text-xs font-mono text-terminal-green font-semibold">
+                      {course.completion}%
+                    </span>
                   </div>
                   <div className="h-2 rounded-full bg-terminal-darker border border-terminal-green/20 overflow-hidden">
                     <div

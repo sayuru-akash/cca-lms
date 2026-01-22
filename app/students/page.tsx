@@ -117,14 +117,19 @@ export default function StudentsPage() {
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <div className="h-12 w-12 rounded-full border-2 border-terminal-green bg-terminal-green/10 flex items-center justify-center font-mono font-bold text-terminal-green">
-                      {student.name.split(" ").map(n => n[0]).join("")}
+                      {student.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-mono font-semibold text-terminal-text">
                           {student.name}
                         </h3>
-                        <Badge variant="success" className="text-[10px]">Active</Badge>
+                        <Badge variant="success" className="text-[10px]">
+                          Active
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-xs font-mono text-terminal-text-muted">
                         <span className="flex items-center gap-1">
@@ -138,21 +143,29 @@ export default function StudentsPage() {
 
                   <div className="flex items-center gap-6">
                     <div className="text-center">
-                      <p className="text-xs font-mono text-terminal-text-muted mb-1">Enrolled</p>
+                      <p className="text-xs font-mono text-terminal-text-muted mb-1">
+                        Enrolled
+                      </p>
                       <p className="text-lg font-mono font-bold text-terminal-green">
                         {student.enrolledCourses}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-xs font-mono text-terminal-text-muted mb-1">Completed</p>
+                      <p className="text-xs font-mono text-terminal-text-muted mb-1">
+                        Completed
+                      </p>
                       <p className="text-lg font-mono font-bold text-terminal-green">
                         {student.completedCourses}
                       </p>
                     </div>
                     <div className="min-w-30">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-mono text-terminal-text-muted">Progress</span>
-                        <span className="text-xs font-mono text-terminal-green font-semibold">{student.progress}%</span>
+                        <span className="text-xs font-mono text-terminal-text-muted">
+                          Progress
+                        </span>
+                        <span className="text-xs font-mono text-terminal-green font-semibold">
+                          {student.progress}%
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-terminal-darker border border-terminal-green/20 overflow-hidden">
                         <div
@@ -161,7 +174,11 @@ export default function StudentsPage() {
                         />
                       </div>
                     </div>
-                    <Button size="icon" variant="ghost" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </div>

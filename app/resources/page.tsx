@@ -1,7 +1,23 @@
 "use client";
 
-import { FileText, Download, Upload, Search, Filter, File, Video, Image as ImageIcon, FileArchive } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  FileText,
+  Download,
+  Upload,
+  Search,
+  Filter,
+  File,
+  Video,
+  Image as ImageIcon,
+  FileArchive,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -124,7 +140,10 @@ export default function ResourcesPage() {
                 2.8 GB
               </div>
               <div className="h-2 rounded-full bg-terminal-darker border border-terminal-green/20 overflow-hidden">
-                <div className="h-full bg-terminal-green rounded-full" style={{ width: "56%" }} />
+                <div
+                  className="h-full bg-terminal-green rounded-full"
+                  style={{ width: "56%" }}
+                />
               </div>
               <p className="text-xs font-mono text-terminal-text-muted mt-2">
                 56% of 5 GB used
@@ -143,7 +162,8 @@ export default function ResourcesPage() {
                 342
               </div>
               <p className="text-xs font-mono text-terminal-text-muted mt-2">
-                <span className="text-terminal-green">+24</span> files this month
+                <span className="text-terminal-green">+24</span> files this
+                month
               </p>
             </CardContent>
           </Card>
@@ -159,7 +179,8 @@ export default function ResourcesPage() {
                 8,456
               </div>
               <p className="text-xs font-mono text-terminal-text-muted mt-2">
-                <span className="text-terminal-green">+12.5%</span> from last month
+                <span className="text-terminal-green">+12.5%</span> from last
+                month
               </p>
             </CardContent>
           </Card>
@@ -204,7 +225,15 @@ export default function ResourcesPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Badge variant={resource.type === "pdf" ? "info" : resource.type === "video" ? "warning" : "default"}>
+                      <Badge
+                        variant={
+                          resource.type === "pdf"
+                            ? "info"
+                            : resource.type === "video"
+                              ? "warning"
+                              : "default"
+                        }
+                      >
                         {resource.type.toUpperCase()}
                       </Badge>
                       <Button size="icon" variant="outline">
