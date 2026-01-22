@@ -1,14 +1,21 @@
-import { PrismaClient } from '@prisma/client';
+import 'dotenv/config';
+import { PrismaClient } from '../generated/prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+// Create Prisma client with direct connection for seeding
+const seedPrisma = new PrismaClient({
+  adapter: new PrismaPg({
+    connectionString: process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL,
+  }),
+});
 
 async function main() {
   console.log('Seeding database...');
 
   // Create admin user
   const adminPassword = await bcrypt.hash('Admin123!', 10);
-  const admin = await prisma.user.upsert({
+  const admin = await seedPrisma.user.upsert({
     where: { email: 'admin@codezela.com' },
     update: {},
     create: {
@@ -24,7 +31,7 @@ async function main() {
 
   // Create lecturer user
   const lecturerPassword = await bcrypt.hash('Lecturer123!', 10);
-  const lecturer = await prisma.user.upsert({
+  const lecturer = await seedPrisma.user.upsert({
     where: { email: 'lecturer@codezela.com' },
     update: {},
     create: {
@@ -40,7 +47,7 @@ async function main() {
 
   // Create student user
   const studentPassword = await bcrypt.hash('Student123!', 10);
-  const student = await prisma.user.upsert({
+  const student = await seedPrisma.user.upsert({
     where: { email: 'student@codezela.com' },
     update: {},
     create: {
@@ -63,5 +70,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await seedPrisma.$disconnect();
   });
