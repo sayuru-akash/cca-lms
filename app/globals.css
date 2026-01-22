@@ -102,7 +102,6 @@ body {
 
 .scanline {
   position: relative;
-  overflow: hidden;
 }
 
 .scanline::before {
