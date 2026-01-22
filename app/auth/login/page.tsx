@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Terminal, Lock, Mail, Eye, EyeOff, LogIn } from "lucide-react";
+import { Terminal, Lock, Mail, Eye, EyeOff, LogIn, AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -12,18 +12,44 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement authentication
-    setTimeout(() => setIsLoading(false), 1000);
+    setError("");
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+      } else {
+        // Success - redirect to dashboard or callback URL
+        router.push(callbackUrl);
+        router.refresh();
+      }
+    } catch {
+      setError("An unexpected error occurred");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,6 +86,14 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="rounded-md bg-red-500/10 border border-red-500/20 p-3 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-sm font-mono text-red-500">{error}</p>
+                </div>
+              )}
+
               {/* Email Field */}
               <div className="space-y-2">
                 <label className="text-sm font-mono text-terminal-text-muted flex items-center gap-2">
