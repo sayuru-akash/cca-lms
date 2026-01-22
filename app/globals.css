@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light mode - Terminal theme */
+  --background: #f0f4f0;
+  --foreground: #1a1a1a;
+  --terminal-dark: #0a0f0a;
+  --terminal-darker: #fafffe;
+  --terminal-green: #22c55e;
+  --terminal-green-light: #4ade80;
+  --terminal-green-dark: #16a34a;
+  --terminal-text: #1a1a1a;
+  --terminal-text-muted: #6b7280;
+  --terminal-card: rgba(255, 255, 255, 0.8);
+  --terminal-border: rgba(34, 197, 94, 0.2);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-terminal-dark: var(--terminal-dark);
+  --color-terminal-darker: var(--terminal-darker);
+  --color-terminal-green: var(--terminal-green);
+  --color-terminal-green-light: var(--terminal-green-light);
+  --color-terminal-green-dark: var(--terminal-green-dark);
+  --color-terminal-text: var(--terminal-text);
+  --color-terminal-text-muted: var(--terminal-text-muted);
+  --color-terminal-card: var(--terminal-card);
+  --color-terminal-border: var(--terminal-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #0a0f0a;
+  --foreground: #e5e7eb;
+  --terminal-dark: #0a0f0a;
+  --terminal-darker: #050805;
+  --terminal-green: #22c55e;
+  --terminal-green-light: #4ade80;
+  --terminal-green-dark: #16a34a;
+  --terminal-text: #e5e7eb;
+  --terminal-text-muted: #9ca3af;
+  --terminal-card: rgba(10, 15, 10, 0.8);
+  --terminal-border: rgba(34, 197, 94, 0.2);
+}
+
+* {
+  @apply border-terminal-border;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-mono), monospace;
+  line-height: 1.6;
+}
+
+/* Custom scrollbar for terminal aesthetic */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--terminal-darker);
+  border: 1px solid var(--terminal-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--terminal-green);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--terminal-green-light);
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+/* Terminal text effect */
+.terminal-text {
+  font-family: var(--font-geist-mono), monospace;
+  text-shadow: 0 0 5px rgba(34, 197, 94, 0.5);
+}
+
+/* Glow effect for headings */
+.terminal-glow {
+  text-shadow: 0 0 10px rgba(34, 197, 94, 0.7), 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+/* Scan line effect */
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: rgba(34, 197, 94, 0.1);
+  animation: scan 8s linear infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Flicker animation for terminal effect */
+@keyframes flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.terminal-flicker {
+  animation: flicker 0.15s infinite;
+}
+
+/* Selection color */
+::selection {
+  background-color: rgba(34, 197, 94, 0.3);
+  color: var(--terminal-text);
 }
