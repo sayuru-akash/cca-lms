@@ -1,15 +1,17 @@
-import 'dotenv/config';
-import { PrismaClient } from '../generated/prisma/client';
-import { PrismaPg } from '@prisma/adapter-pg';
-import bcrypt from 'bcryptjs';
-import { Pool } from 'pg';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import "dotenv/config";
+// @ts-expect-error pg library lacks type definitions
+import { Pool } from "pg";
+import { PrismaClient } from "../generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Create Prisma client with direct connection for seeding
 const seedPrisma = new PrismaClient({
   adapter: new PrismaPg({
-    connectionString: process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL,
+    connectionString:
+      process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL,
   }),
 });
 
@@ -19,82 +21,82 @@ const pool = new Pool({
 });
 
 async function enableRLS() {
-  console.log('🔒 Enabling Row-Level Security...');
-  
+  console.log("🔒 Enabling Row-Level Security...");
+
   try {
     const rlsSQL = readFileSync(
-      join(__dirname, 'migrations', 'enable_rls.sql'),
-      'utf-8'
+      join(__dirname, "migrations", "enable_rls.sql"),
+      "utf-8",
     );
-    
+
     await pool.query(rlsSQL);
-    console.log('✅ RLS enabled successfully!');
+    console.log("✅ RLS enabled successfully!");
   } catch (error) {
-    console.error('❌ Error enabling RLS:', error);
+    console.error("❌ Error enabling RLS:", error);
     throw error;
   }
 }
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log("🌱 Seeding database...");
 
   // Create admin user
-  const adminPassword = await bcrypt.hash('Admin123!', 10);
+  const adminPassword = await bcrypt.hash("Admin123!", 10);
   const admin = await seedPrisma.user.upsert({
-    where: { email: 'admin@codezela.com' },
+    where: { email: "admin@codezela.com" },
     update: {},
     create: {
-      email: 'admin@codezela.com',
-      name: 'Admin User',
+      email: "admin@codezela.com",
+      name: "Admin User",
       password: adminPassword,
-      role: 'ADMIN',
-      status: 'ACTIVE',
+      role: "ADMIN",
+      status: "ACTIVE",
       emailVerified: new Date(),
     },
   });
-  console.log('Created admin user:', admin.email);
+  console.log("Created admin user:", admin.email);
 
   // Create lecturer user
-  const lecturerPassword = await bcrypt.hash('Lecturer123!', 10);
+  const lecturerPassword = await bcrypt.hash("Lecturer123!", 10);
   const lecturer = await seedPrisma.user.upsert({
-    where: { email: 'lecturer@codezela.com' },
+    where: { email: "lecturer@codezela.com" },
     update: {},
     create: {
-      email: 'lecturer@codezela.com',
-      name: 'Lecturer User',
+      email: "lecturer@codezela.com",
+      name: "Lecturer User",
       password: lecturerPassword,
-      role: 'LECTURER',
-      status: 'ACTIVE',
+      role: "LECTURER",
+      status: "ACTIVE",
       emailVerified: new Date(),
     },
   });
-  console.log('Created lecturer user:', lecturer.email);
+  console.log("Created lecturer user:", lecturer.email);
 
   // Create student user
-  const studentPassword = await bcrypt.hash('Student123!', 10);
+  const studentPassword = await bcrypt.hash("Student123!", 10);
   const student = await seedPrisma.user.upsert({
-    where: { email: 'student@codezela.com' },
+    where: { email: "student@codezela.com" },
     update: {},
     create: {
-      email: 'student@codezela.com',
-      name: 'Student User',
+      email: "student@codezela.com",
+      name: "Student User",
       password: studentPassword,
-      role: 'STUDENT',
-      status: 'ACTIVE',
+      role: "STUDENT",
+      status: "ACTIVE",
       emailVerified: new Date(),
     },
   });
-  console.log('Created student user:', student.email);
+  console.log("Created student user:", student.email);
 
-  console.log('✅ Seeding complete!');
-  
+  console.log("✅ Seeding complete!");
+
   // Enable RLS after seeding
   await enableRLS();
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Error seeding database:', e);
+    console.error("❌ Error seeding database:", e);
     process.exit(1);
   })
   .finally(async () => {
