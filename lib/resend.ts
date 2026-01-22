@@ -1,6 +1,13 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing RESEND_API_KEY environment variable.');
+  }
+  return new Resend(apiKey);
+}
+
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL!;
 const APP_NAME = process.env.APP_NAME || 'Codezela Career Accelerator - LMS';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
@@ -13,7 +20,7 @@ const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 export async function sendPasswordResetEmail(to: string, token: string) {
   const resetUrl = `${APP_URL}/auth/reset-password?token=${token}`;
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Reset Your Password - ${APP_NAME}`,
@@ -64,7 +71,7 @@ export async function sendAccountInviteEmail(
 ) {
   const inviteUrl = `${APP_URL}/auth/accept-invite?token=${inviteToken}`;
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `You're Invited to Join ${APP_NAME}`,
@@ -110,7 +117,7 @@ export async function sendAccountInviteEmail(
 export async function sendEmailVerification(to: string, token: string) {
   const verifyUrl = `${APP_URL}/auth/verify-email?token=${token}`;
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `Verify Your Email - ${APP_NAME}`,
@@ -158,7 +165,7 @@ export async function sendNotificationEmail(
   subject: string,
   message: string
 ) {
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to,
     subject: `${subject} - ${APP_NAME}`,

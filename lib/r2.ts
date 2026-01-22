@@ -1,17 +1,27 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-// Initialize R2/S3 client
-const r2Client = new S3Client({
-  region: process.env.R2_REGION || 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
-});
+// Lazy initialization of R2/S3 client
+function getR2Client() {
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
-const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
+  if (!accountId || !accessKeyId || !secretAccessKey) {
+    throw new Error('Missing R2 credentials. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY environment variables.');
+  }
+
+  return new S3Client({
+    region: process.env.R2_REGION || 'auto',
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId,
+      secretAccessKey,
+    },
+  });
+}
+
+const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'cca-lms-uploads';
 const PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 /**
@@ -32,7 +42,7 @@ export async function generateUploadUrl(
     ContentType: contentType,
   });
 
-  return await getSignedUrl(r2Client, command, { expiresIn });
+  return await getSignedUrl(getR2Client(), command, { expiresIn });
 }
 
 /**
@@ -50,7 +60,7 @@ export async function generateDownloadUrl(
     Key: key,
   });
 
-  return await getSignedUrl(r2Client, command, { expiresIn });
+  return await getSignedUrl(getR2Client(), command, { expiresIn });
 }
 
 /**

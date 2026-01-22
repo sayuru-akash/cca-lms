@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import type { AuditAction } from '@prisma/client';
+import type { AuditAction, Prisma } from '@prisma/client';
 
 /**
  * Create an audit log entry
@@ -16,7 +16,15 @@ export async function createAuditLog(data: {
 }) {
   try {
     await prisma.auditLog.create({
-      data,
+      data: {
+        userId: data.userId,
+        action: data.action,
+        entityType: data.entityType,
+        entityId: data.entityId,
+        metadata: data.metadata as Prisma.InputJsonValue,
+        ipAddress: data.ipAddress,
+        userAgent: data.userAgent,
+      },
     });
   } catch (error) {
     // Log the error but don't throw - audit logging shouldn't break the app
