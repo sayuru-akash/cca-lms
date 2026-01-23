@@ -1,5 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl as getS3SignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Lazy initialization of R2/S3 client
 function getR2Client() {
@@ -8,11 +13,13 @@ function getR2Client() {
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 
   if (!accountId || !accessKeyId || !secretAccessKey) {
-    throw new Error('Missing R2 credentials. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY environment variables.');
+    throw new Error(
+      "Missing R2 credentials. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY environment variables.",
+    );
   }
 
   return new S3Client({
-    region: process.env.R2_REGION || 'auto',
+    region: process.env.R2_REGION || "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: {
       accessKeyId,
@@ -21,8 +28,69 @@ function getR2Client() {
   });
 }
 
-const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'cca-lms-uploads';
+const BUCKET_NAME = process.env.R2_BUCKET_NAME || "cca-lms-uploads";
 const PUBLIC_URL = process.env.R2_PUBLIC_URL;
+
+/**
+ * Upload a file buffer to R2
+ * @param buffer - File buffer
+ * @param fileName - Original file name
+ * @param mimeType - MIME type
+ * @returns Upload result with key
+ */
+export async function uploadToR2(
+  buffer: Buffer,
+  fileName: string,
+  mimeType: string,
+): Promise<{ key: string }> {
+  const timestamp = Date.now();
+  const extension = fileName.split(".").pop();
+  const baseName = fileName.replace(`.${extension}`, "");
+  const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
+  const key = `resources/${timestamp}-${sanitizedBaseName}.${extension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: mimeType,
+  });
+
+  await getR2Client().send(command);
+
+  return { key };
+}
+
+/**
+ * Delete a file from R2
+ * @param key - File key to delete
+ */
+export async function deleteFromR2(key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  await getR2Client().send(command);
+}
+
+/**
+ * Get a signed URL for secure downloads
+ * @param key - File key
+ * @param expiresIn - URL expiration time in seconds (default: 1 hour)
+ * @returns Signed download URL
+ */
+export async function getSignedUrl(
+  key: string,
+  expiresIn = 3600,
+): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  return await getS3SignedUrl(getR2Client(), command, { expiresIn });
+}
 
 /**
  * Generate a presigned URL for uploading a file directly to R2
@@ -34,7 +102,7 @@ const PUBLIC_URL = process.env.R2_PUBLIC_URL;
 export async function generateUploadUrl(
   key: string,
   contentType: string,
-  expiresIn = 300
+  expiresIn = 300,
 ): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
@@ -42,7 +110,7 @@ export async function generateUploadUrl(
     ContentType: contentType,
   });
 
-  return await getSignedUrl(getR2Client(), command, { expiresIn });
+  return await getS3SignedUrl(getR2Client(), command, { expiresIn });
 }
 
 /**
@@ -53,14 +121,14 @@ export async function generateUploadUrl(
  */
 export async function generateDownloadUrl(
   key: string,
-  expiresIn = 900
+  expiresIn = 900,
 ): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
   });
 
-  return await getSignedUrl(getR2Client(), command, { expiresIn });
+  return await getS3SignedUrl(getR2Client(), command, { expiresIn });
 }
 
 /**
@@ -82,12 +150,12 @@ export function getPublicUrl(key: string): string | undefined {
 export function generateFileKey(
   fileType: string,
   fileName: string,
-  userId: string
+  userId: string,
 ): string {
   const timestamp = Date.now();
-  const extension = fileName.split('.').pop();
-  const baseName = fileName.replace(`.${extension}`, '');
-  const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, '_');
+  const extension = fileName.split(".").pop();
+  const baseName = fileName.replace(`.${extension}`, "");
+  const sanitizedBaseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
 
   return `${fileType}/${userId}/${timestamp}-${sanitizedBaseName}.${extension}`;
 }
@@ -115,13 +183,13 @@ export function extractFileMetadata(file: File) {
 export function validateFile(
   file: File,
   allowedTypes: string[],
-  maxSizeMB: number
+  maxSizeMB: number,
 ): { valid: boolean; error?: string } {
   // Check file type
   if (!allowedTypes.includes(file.type)) {
     return {
       valid: false,
-      error: `Invalid file type. Allowed types: ${allowedTypes.join(', ')}`,
+      error: `Invalid file type. Allowed types: ${allowedTypes.join(", ")}`,
     };
   }
 
@@ -140,31 +208,31 @@ export function validateFile(
 // Common file type validations
 export const FILE_VALIDATIONS = {
   image: {
-    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    allowedTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
     maxSizeMB: 5,
   },
   video: {
-    allowedTypes: ['video/mp4', 'video/webm', 'video/quicktime'],
+    allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
     maxSizeMB: 500,
   },
   document: {
     allowedTypes: [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ],
     maxSizeMB: 25,
   },
   submission: {
     allowedTypes: [
-      'application/pdf',
-      'application/zip',
-      'image/jpeg',
-      'image/png',
+      "application/pdf",
+      "application/zip",
+      "image/jpeg",
+      "image/png",
     ],
     maxSizeMB: 50,
   },

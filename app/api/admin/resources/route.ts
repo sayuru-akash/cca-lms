@@ -1,84 +1,136 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { r2 } from "@/lib/r2";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { uploadToR2, getSignedUrl } from "@/lib/r2";
 
-export const runtime = "nodejs";
-
-// POST /api/admin/resources - Upload resource file
+// POST: Upload resource to lesson
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session?.user || !["ADMIN", "LECTURER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
     const lessonId = formData.get("lessonId") as string;
     const title = formData.get("title") as string;
-    const type = (formData.get("type") as string) || "DOCUMENT";
+    const description = formData.get("description") as string | null;
+    const type = (formData.get("type") as string) || "FILE";
+    const externalUrl = formData.get("externalUrl") as string | null;
+    const embedCode = formData.get("embedCode") as string | null;
+    const textContent = formData.get("textContent") as string | null;
+    const visibility = (formData.get("visibility") as string) || "PUBLIC";
+    const downloadable = formData.get("downloadable") === "true";
+    const tags = formData.get("tags")
+      ? JSON.parse(formData.get("tags") as string)
+      : [];
 
-    if (!file || !lessonId) {
+    if (!lessonId || !title) {
       return NextResponse.json(
-        { error: "File and lessonId are required" },
+        { error: "Missing required fields" },
         { status: 400 },
       );
     }
 
-    // Upload to R2
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const key = `resources/${Date.now()}-${file.name}`;
+    // Verify lesson exists
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
 
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }),
-    );
+    if (!lesson) {
+      return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+    }
 
-    // Get the next order number
-    const lastResource = await prisma.lessonResource.findFirst({
+    let fileKey: string | null = null;
+    let fileName: string | null = null;
+    let fileSize: number | null = null;
+    let mimeType: string | null = null;
+
+    // Handle file upload
+    if (type === "FILE" && file) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const uploadResult = await uploadToR2(buffer, file.name, file.type);
+
+      fileKey = uploadResult.key;
+      fileName = file.name;
+      fileSize = file.size;
+      mimeType = file.type;
+    }
+
+    // Get current max order
+    const maxOrder = await prisma.lessonResource.findFirst({
       where: { lessonId },
       orderBy: { order: "desc" },
       select: { order: true },
     });
 
-    const order = (lastResource?.order ?? 0) + 1;
+    const order = (maxOrder?.order ?? -1) + 1;
 
-    // Create resource record
+    // Create resource
     const resource = await prisma.lessonResource.create({
       data: {
-        title: title || file.name,
-        type,
-        url: key,
         lessonId,
+        title,
+        description,
+        type,
+        fileKey,
+        fileName,
+        fileSize,
+        mimeType,
+        externalUrl,
+        embedCode,
+        textContent,
+        visibility,
+        downloadable,
+        tags,
         order,
+        version: 1,
+        isLatest: true,
+      },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(
-      { resource, message: "Resource uploaded successfully" },
-      { status: 201 },
-    );
+    // Create initial version if file uploaded
+    if (fileKey) {
+      await prisma.resourceVersion.create({
+        data: {
+          resourceId: resource.id,
+          version: 1,
+          fileKey,
+          fileName,
+          fileSize,
+          mimeType,
+          uploadedBy: session.user.id,
+        },
+      });
+    }
+
+    return NextResponse.json(resource, { status: 201 });
   } catch (error) {
-    console.error("Error uploading resource:", error);
+    console.error("Error creating resource:", error);
     return NextResponse.json(
-      { error: "Failed to upload resource" },
+      { error: "Failed to create resource" },
       { status: 500 },
     );
   }
 }
 
-// GET /api/admin/resources - List resources for a lesson
+// GET: Get resources for a lesson
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await getServerSession(authOptions);
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -86,18 +138,46 @@ export async function GET(request: NextRequest) {
     const lessonId = searchParams.get("lessonId");
 
     if (!lessonId) {
-      return NextResponse.json(
-        { error: "lessonId is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing lessonId" }, { status: 400 });
     }
 
     const resources = await prisma.lessonResource.findMany({
-      where: { lessonId },
+      where: {
+        lessonId,
+        // Students only see PUBLIC or SCHEDULED (if past date) resources
+        ...(session.user.role === "STUDENT" && {
+          OR: [
+            { visibility: "PUBLIC" },
+            {
+              visibility: "SCHEDULED",
+              scheduledAt: {
+                lte: new Date(),
+              },
+            },
+          ],
+        }),
+      },
       orderBy: { order: "asc" },
+      include: {
+        versions: {
+          orderBy: { version: "desc" },
+          take: 5, // Last 5 versions
+        },
+      },
     });
 
-    return NextResponse.json({ resources });
+    // Generate signed URLs for downloadable files
+    const resourcesWithUrls = await Promise.all(
+      resources.map(async (resource) => {
+        if (resource.fileKey && resource.downloadable) {
+          const signedUrl = await getSignedUrl(resource.fileKey);
+          return { ...resource, signedUrl };
+        }
+        return resource;
+      }),
+    );
+
+    return NextResponse.json(resourcesWithUrls);
   } catch (error) {
     console.error("Error fetching resources:", error);
     return NextResponse.json(

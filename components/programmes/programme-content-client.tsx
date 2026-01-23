@@ -17,6 +17,9 @@ import {
   Video,
   Clock,
   MoreVertical,
+  Upload,
+  HelpCircle,
+  Eye,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -117,9 +120,15 @@ export default function ProgrammeContentClient({
     title: "",
     description: "",
     content: "",
+    videoUrl: "",
     type: "VIDEO",
     duration: 0,
   });
+
+  // Resource/Quiz management
+  const [showResourceDialog, setShowResourceDialog] = useState(false);
+  const [showQuizBuilder, setShowQuizBuilder] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState<string>("");
 
   useEffect(() => {
     fetchProgramme();
@@ -136,7 +145,7 @@ export default function ProgrammeContentClient({
       setProgramme(data.programme);
 
       // Expand all modules by default
-      const moduleIds = new Set(
+      const moduleIds = new Set<string>(
         data.programme.modules.map((m: Module) => m.id),
       );
       setExpandedModules(moduleIds);
@@ -248,6 +257,7 @@ export default function ProgrammeContentClient({
       title: "",
       description: "",
       content: "",
+      videoUrl: "",
       type: "VIDEO",
       duration: 0,
     });
@@ -262,6 +272,7 @@ export default function ProgrammeContentClient({
       title: lesson.title,
       description: lesson.description || "",
       content: lesson.content || "",
+      videoUrl: (lesson as any).videoUrl || "",
       type: lesson.type,
       duration: lesson.duration,
     });
@@ -324,6 +335,16 @@ export default function ProgrammeContentClient({
       console.error("Error deleting lesson:", error);
       alert(error instanceof Error ? error.message : "Failed to delete lesson");
     }
+  };
+
+  const openResourceDialog = (lessonId: string) => {
+    setSelectedLessonId(lessonId);
+    setShowResourceDialog(true);
+  };
+
+  const openQuizBuilder = (lessonId: string) => {
+    setSelectedLessonId(lessonId);
+    setShowQuizBuilder(true);
   };
 
   const getLessonIcon = (type: string) => {
@@ -392,7 +413,7 @@ export default function ProgrammeContentClient({
                 </h1>
                 <Badge
                   variant={
-                    programme.status === "PUBLISHED" ? "default" : "secondary"
+                    programme.status === "PUBLISHED" ? "default" : "outline"
                   }
                 >
                   {programme.status}
@@ -574,6 +595,25 @@ export default function ProgrammeContentClient({
                                       <Edit className="h-4 w-4 mr-2" />
                                       Edit Lesson
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        openResourceDialog(lesson.id)
+                                      }
+                                    >
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Manage Resources
+                                    </DropdownMenuItem>
+                                    {lesson.type === "QUIZ" && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          openQuizBuilder(lesson.id)
+                                        }
+                                      >
+                                        <HelpCircle className="h-4 w-4 mr-2" />
+                                        Manage Quiz
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       onClick={() => handleDeleteLesson(lesson)}
                                       className="text-destructive"
@@ -769,19 +809,71 @@ export default function ProgrammeContentClient({
               />
             </div>
 
+            {lessonForm.type === "VIDEO" && (
+              <div className="space-y-2">
+                <Label htmlFor="lesson-videoUrl">Video URL</Label>
+                <Input
+                  id="lesson-videoUrl"
+                  value={lessonForm.videoUrl}
+                  onChange={(e) =>
+                    setLessonForm({ ...lessonForm, videoUrl: e.target.value })
+                  }
+                  placeholder="R2 video key or external URL (YouTube, Vimeo, etc.)"
+                  disabled={isLessonSubmitting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter R2 file key for uploaded videos or external video URL
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="lesson-content">Content</Label>
+              <Label htmlFor="lesson-content">
+                {lessonForm.type === "QUIZ"
+                  ? "Quiz Instructions"
+                  : lessonForm.type === "ASSIGNMENT"
+                    ? "Assignment Brief"
+                    : "Content"}
+              </Label>
               <Textarea
                 id="lesson-content"
                 value={lessonForm.content}
                 onChange={(e) =>
                   setLessonForm({ ...lessonForm, content: e.target.value })
                 }
-                placeholder="Lesson content, video URL, or reading material..."
+                placeholder={
+                  lessonForm.type === "QUIZ"
+                    ? "Instructions for taking this quiz..."
+                    : lessonForm.type === "ASSIGNMENT"
+                      ? "Assignment description and requirements..."
+                      : lessonForm.type === "READING"
+                        ? "Reading material or article content..."
+                        : "Lesson overview or additional notes..."
+                }
                 rows={4}
                 disabled={isLessonSubmitting}
               />
             </div>
+
+            {lessonForm.type === "QUIZ" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <HelpCircle className="h-4 w-4 inline mr-1" />
+                  After creating the lesson, use "Manage Quiz" to add questions
+                  and answers.
+                </p>
+              </div>
+            )}
+
+            {lessonForm.type === "VIDEO" && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-900">
+                  <Upload className="h-4 w-4 inline mr-1" />
+                  After creating the lesson, use "Manage Resources" to upload
+                  video files to R2.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button
@@ -808,6 +900,69 @@ export default function ProgrammeContentClient({
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resource Management Dialog */}
+      <Dialog open={showResourceDialog} onOpenChange={setShowResourceDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Lesson Resources</DialogTitle>
+            <DialogDescription>
+              Upload files, add external links, or embed content
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Resource management UI coming soon. You can use the file upload
+              component to add resources.
+            </p>
+            {selectedLessonId && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <p className="text-xs font-mono">
+                  Lesson ID: {selectedLessonId}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowResourceDialog(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quiz Builder Dialog */}
+      <Dialog open={showQuizBuilder} onOpenChange={setShowQuizBuilder}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quiz Builder</DialogTitle>
+            <DialogDescription>
+              Create and manage quiz questions, answers, and settings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Quiz builder UI coming soon. You can use the quiz API to create
+              questions.
+            </p>
+            {selectedLessonId && (
+              <div className="border rounded-lg p-4 bg-muted/50">
+                <p className="text-xs font-mono">
+                  Lesson ID: {selectedLessonId}
+                </p>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setShowQuizBuilder(false)}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -190,6 +190,8 @@ exports.Prisma.LessonScalarFieldEnum = {
   moduleId: 'moduleId',
   title: 'title',
   description: 'description',
+  type: 'type',
+  duration: 'duration',
   videoUrl: 'videoUrl',
   order: 'order',
   isPublished: 'isPublished',
@@ -201,10 +203,95 @@ exports.Prisma.LessonResourceScalarFieldEnum = {
   id: 'id',
   lessonId: 'lessonId',
   title: 'title',
+  description: 'description',
+  type: 'type',
   fileKey: 'fileKey',
   fileName: 'fileName',
   fileSize: 'fileSize',
   mimeType: 'mimeType',
+  externalUrl: 'externalUrl',
+  embedCode: 'embedCode',
+  textContent: 'textContent',
+  version: 'version',
+  isLatest: 'isLatest',
+  visibility: 'visibility',
+  scheduledAt: 'scheduledAt',
+  downloadable: 'downloadable',
+  tags: 'tags',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ResourceVersionScalarFieldEnum = {
+  id: 'id',
+  resourceId: 'resourceId',
+  version: 'version',
+  fileKey: 'fileKey',
+  fileName: 'fileName',
+  fileSize: 'fileSize',
+  mimeType: 'mimeType',
+  uploadedBy: 'uploadedBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.QuizScalarFieldEnum = {
+  id: 'id',
+  lessonId: 'lessonId',
+  title: 'title',
+  description: 'description',
+  timeLimit: 'timeLimit',
+  passingScore: 'passingScore',
+  maxAttempts: 'maxAttempts',
+  shuffleQuestions: 'shuffleQuestions',
+  shuffleAnswers: 'shuffleAnswers',
+  showResults: 'showResults',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuizQuestionScalarFieldEnum = {
+  id: 'id',
+  quizId: 'quizId',
+  type: 'type',
+  question: 'question',
+  explanation: 'explanation',
+  points: 'points',
+  order: 'order',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QuizAnswerScalarFieldEnum = {
+  id: 'id',
+  questionId: 'questionId',
+  answer: 'answer',
+  isCorrect: 'isCorrect',
+  order: 'order',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.QuizAttemptScalarFieldEnum = {
+  id: 'id',
+  quizId: 'quizId',
+  userId: 'userId',
+  attemptNumber: 'attemptNumber',
+  status: 'status',
+  score: 'score',
+  maxScore: 'maxScore',
+  percentage: 'percentage',
+  startedAt: 'startedAt',
+  submittedAt: 'submittedAt',
+  gradedAt: 'gradedAt'
+};
+
+exports.Prisma.QuizResponseScalarFieldEnum = {
+  id: 'id',
+  attemptId: 'attemptId',
+  questionId: 'questionId',
+  answer: 'answer',
+  isCorrect: 'isCorrect',
+  points: 'points',
   createdAt: 'createdAt'
 };
 
@@ -331,6 +418,39 @@ exports.CourseStatus = exports.$Enums.CourseStatus = {
   ARCHIVED: 'ARCHIVED'
 };
 
+exports.LessonType = exports.$Enums.LessonType = {
+  VIDEO: 'VIDEO',
+  READING: 'READING',
+  QUIZ: 'QUIZ',
+  ASSIGNMENT: 'ASSIGNMENT'
+};
+
+exports.ResourceType = exports.$Enums.ResourceType = {
+  FILE: 'FILE',
+  EXTERNAL_LINK: 'EXTERNAL_LINK',
+  EMBEDDED: 'EMBEDDED',
+  TEXT_NOTE: 'TEXT_NOTE'
+};
+
+exports.AssetVisibility = exports.$Enums.AssetVisibility = {
+  PUBLIC: 'PUBLIC',
+  SCHEDULED: 'SCHEDULED',
+  HIDDEN: 'HIDDEN'
+};
+
+exports.QuestionType = exports.$Enums.QuestionType = {
+  MULTIPLE_CHOICE: 'MULTIPLE_CHOICE',
+  TRUE_FALSE: 'TRUE_FALSE',
+  SHORT_ANSWER: 'SHORT_ANSWER',
+  LONG_ANSWER: 'LONG_ANSWER'
+};
+
+exports.AttemptStatus = exports.$Enums.AttemptStatus = {
+  IN_PROGRESS: 'IN_PROGRESS',
+  SUBMITTED: 'SUBMITTED',
+  GRADED: 'GRADED'
+};
+
 exports.EnrollmentStatus = exports.$Enums.EnrollmentStatus = {
   ACTIVE: 'ACTIVE',
   COMPLETED: 'COMPLETED',
@@ -399,6 +519,12 @@ exports.Prisma.ModelName = {
   Module: 'Module',
   Lesson: 'Lesson',
   LessonResource: 'LessonResource',
+  ResourceVersion: 'ResourceVersion',
+  Quiz: 'Quiz',
+  QuizQuestion: 'QuizQuestion',
+  QuizAnswer: 'QuizAnswer',
+  QuizAttempt: 'QuizAttempt',
+  QuizResponse: 'QuizResponse',
   CourseEnrollment: 'CourseEnrollment',
   LessonProgress: 'LessonProgress',
   Submission: 'Submission',

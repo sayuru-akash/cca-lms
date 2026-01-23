@@ -108,6 +108,13 @@ enum CourseStatus {
   ARCHIVED
 }
 
+enum LessonType {
+  VIDEO
+  READING
+  QUIZ
+  ASSIGNMENT
+}
+
 model Course {
   id          String       @id @default(cuid())
   title       String
@@ -144,39 +151,207 @@ model Module {
 }
 
 model Lesson {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   moduleId    String
   title       String
-  description String?  @db.Text
-  videoUrl    String?  // R2 file key or external URL
+  description String?    @db.Text
+  type        LessonType @default(VIDEO)
+  duration    Int?       // Duration in seconds
+  videoUrl    String?    // R2 file key or external URL
   order       Int
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   // Relations
-  module      Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  module      Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   resources   LessonResource[]
+  quiz        Quiz?
   submissions Submission[]
+  progress    LessonProgress[]
 
   @@index([moduleId])
   @@index([order])
+  @@index([type])
+}
+
+enum ResourceType {
+  FILE          // Uploaded file to R2
+  EXTERNAL_LINK // External URL
+  EMBEDDED      // Embedded content (YouTube, etc.)
+  TEXT_NOTE     // Rich text note
+}
+
+enum AssetVisibility {
+  PUBLIC      // Visible to all enrolled students
+  SCHEDULED   // Visible after a specific date
+  HIDDEN      // Hidden from students
 }
 
 model LessonResource {
+  id            String            @id @default(cuid())
+  lessonId      String
+  title         String
+  description   String?
+  type          ResourceType      @default(FILE)
+  
+  // File storage (R2)
+  fileKey       String?           // R2 file key
+  fileName      String?
+  fileSize      Int?
+  mimeType      String?
+  
+  // External/Embedded
+  externalUrl   String?
+  embedCode     String?           @db.Text
+  
+  // Text note
+  textContent   String?           @db.Text
+  
+  // Metadata
+  version       Int               @default(1)
+  isLatest      Boolean           @default(true)
+  visibility    AssetVisibility   @default(PUBLIC)
+  scheduledAt   DateTime?
+  downloadable  Boolean           @default(true)
+  tags          String[]
+  
+  order         Int               @default(0)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  lesson        Lesson            @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  versions      ResourceVersion[]
+
+  @@index([lessonId])
+  @@index([type])
+  @@index([visibility])
+}
+
+// Asset version history - don't overwrite, create new versions
+model ResourceVersion {
+  id            String   @id @default(cuid())
+  resourceId    String
+  version       Int
+  fileKey       String?  // R2 file key for this version
+  fileName      String?
+  fileSize      Int?
+  mimeType      String?
+  uploadedBy    String?  // User ID who uploaded this version
+  createdAt     DateTime @default(now())
+
+  // Relations
+  resource      LessonResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId])
+  @@unique([resourceId, version])
+}
+
+// Quiz system
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  LONG_ANSWER
+}
+
+model Quiz {
+  id              String   @id @default(cuid())
+  lessonId        String   @unique
+  title           String
+  description     String?  @db.Text
+  timeLimit       Int?     // In minutes
+  passingScore    Int      @default(70) // Percentage
+  maxAttempts     Int?     // null = unlimited
+  shuffleQuestions Boolean @default(false)
+  shuffleAnswers   Boolean @default(false)
+  showResults     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  lesson          Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  questions       QuizQuestion[]
+  attempts        QuizAttempt[]
+}
+
+model QuizQuestion {
+  id          String       @id @default(cuid())
+  quizId      String
+  type        QuestionType
+  question    String       @db.Text
+  explanation String?      @db.Text
+  points      Int          @default(1)
+  order       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  quiz        Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  answers     QuizAnswer[]
+  responses   QuizResponse[]
+
+  @@index([quizId])
+}
+
+model QuizAnswer {
   id          String   @id @default(cuid())
-  lessonId    String
-  title       String
-  fileKey     String   // R2 file key
-  fileName    String
-  fileSize    Int
-  mimeType    String
+  questionId  String
+  answer      String   @db.Text
+  isCorrect   Boolean  @default(false)
+  order       Int
   createdAt   DateTime @default(now())
 
   // Relations
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([lessonId])
+  @@index([questionId])
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+}
+
+model QuizAttempt {
+  id          String        @id @default(cuid())
+  quizId      String
+  userId      String
+  attemptNumber Int
+  status      AttemptStatus @default(IN_PROGRESS)
+  score       Float?
+  maxScore    Float?
+  percentage  Float?
+  startedAt   DateTime      @default(now())
+  submittedAt DateTime?
+  gradedAt    DateTime?
+
+  // Relations
+  quiz        Quiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  responses   QuizResponse[]
+
+  @@index([quizId])
+  @@index([userId])
+  @@unique([quizId, userId, attemptNumber])
+}
+
+model QuizResponse {
+  id          String   @id @default(cuid())
+  attemptId   String
+  questionId  String
+  answer      String?  @db.Text
+  isCorrect   Boolean?
+  points      Float?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([attemptId])
+  @@index([questionId])
 }
 
 // ============================================================================
@@ -209,12 +384,15 @@ model CourseEnrollment {
 }
 
 model LessonProgress {
-  id          String   @id @default(cuid())
-  userId      String
-  lessonId    String
-  completed   Boolean  @default(false)
-  watchedSeconds Int   @default(0)
+  id             String   @id @default(cuid())
+  userId         String
+  lessonId       String
+  completed      Boolean  @default(false)
+  watchedSeconds Int      @default(0)
   lastAccessedAt DateTime @default(now())
+
+  // Relations
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([userId, lessonId])
   @@index([userId])
