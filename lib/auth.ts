@@ -1,31 +1,31 @@
-import NextAuth from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import Google from 'next-auth/providers/google';
-import GitHub from 'next-auth/providers/github';
-import { prisma } from './prisma';
-import bcrypt from 'bcryptjs';
-import { nanoid } from 'nanoid';
-import { auditActions } from './audit';
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
+import { nanoid } from "nanoid";
+import { auditActions } from "./audit";
 
 /**
  * NextAuth configuration
  */
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
+  session: { strategy: "jwt" },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: "/auth/login",
+    error: "/auth/login",
   },
   providers: [
     Credentials({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password required');
+          throw new Error("Email and password required");
         }
 
         const user = await prisma.user.findUnique({
@@ -33,20 +33,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         });
 
         if (!user || !user.password) {
-          throw new Error('Invalid credentials');
+          throw new Error("Invalid credentials");
         }
 
         const isPasswordValid = await bcrypt.compare(
           credentials.password as string,
-          user.password
+          user.password,
         );
 
         if (!isPasswordValid) {
-          throw new Error('Invalid credentials');
+          throw new Error("Invalid credentials");
         }
 
-        if (user.status !== 'ACTIVE') {
-          throw new Error('Account is not active');
+        if (user.status !== "ACTIVE") {
+          throw new Error("Account is not active");
         }
 
         // Log the login
@@ -61,14 +61,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         };
       },
     }),
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-    }),
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
@@ -79,7 +71,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
 
       // Handle session updates
-      if (trigger === 'update' && session) {
+      if (trigger === "update" && session) {
         token = { ...token, ...session };
       }
 
@@ -88,7 +80,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'STUDENT' | 'LECTURER' | 'ADMIN';
+        session.user.role = token.role as "STUDENT" | "LECTURER" | "ADMIN";
       }
       return session;
     },
@@ -99,7 +91,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email: user.email },
         });
 
-        if (existingUser && existingUser.status !== 'ACTIVE') {
+        if (existingUser && existingUser.status !== "ACTIVE") {
           return false;
         }
 
@@ -107,7 +99,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (existingUser && !existingUser.role) {
           await prisma.user.update({
             where: { id: existingUser.id },
-            data: { role: 'STUDENT' },
+            data: { role: "STUDENT" },
           });
         }
       }
@@ -146,7 +138,7 @@ export async function getCurrentUser() {
 export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
   return user;
 }
@@ -154,17 +146,17 @@ export async function requireAuth() {
 /**
  * Require specific role - throws if user doesn't have the required role
  */
-export async function requireRole(role: 'STUDENT' | 'LECTURER' | 'ADMIN') {
+export async function requireRole(role: "STUDENT" | "LECTURER" | "ADMIN") {
   const user = await requireAuth();
 
   const allowedRoles: Record<string, string[]> = {
-    STUDENT: ['STUDENT'],
-    LECTURER: ['LECTURER', 'ADMIN'],
-    ADMIN: ['ADMIN'],
+    STUDENT: ["STUDENT"],
+    LECTURER: ["LECTURER", "ADMIN"],
+    ADMIN: ["ADMIN"],
   };
 
   if (!allowedRoles[role].includes(user.role)) {
-    throw new Error('Forbidden: Insufficient permissions');
+    throw new Error("Forbidden: Insufficient permissions");
   }
 
   return user;
@@ -190,7 +182,7 @@ export async function generateInviteToken(email: string) {
       data: {
         inviteToken: token,
         inviteExpires: expires,
-        status: 'INVITED',
+        status: "INVITED",
       },
     });
   } else {
@@ -200,8 +192,8 @@ export async function generateInviteToken(email: string) {
         email,
         inviteToken: token,
         inviteExpires: expires,
-        status: 'INVITED',
-        role: 'STUDENT',
+        status: "INVITED",
+        role: "STUDENT",
       },
     });
   }
@@ -231,7 +223,7 @@ export async function acceptInviteToken(token: string, password: string) {
   const user = await validateInviteToken(token);
 
   if (!user) {
-    throw new Error('Invalid or expired invite token');
+    throw new Error("Invalid or expired invite token");
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -240,7 +232,7 @@ export async function acceptInviteToken(token: string, password: string) {
     where: { id: user.id },
     data: {
       password: hashedPassword,
-      status: 'ACTIVE',
+      status: "ACTIVE",
       inviteToken: null,
       inviteExpires: null,
       emailVerified: new Date(),
@@ -262,7 +254,7 @@ export async function hashPassword(password: string): Promise<string> {
  */
 export async function verifyPassword(
   password: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
 }

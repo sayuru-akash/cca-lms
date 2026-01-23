@@ -21,11 +21,27 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement password reset
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      const response = await fetch("/api/auth/request-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        setIsSuccess(true);
+      } else {
+        // Still show success to not reveal if email exists
+        setIsSuccess(true);
+      }
+    } catch (error) {
+      console.error("Reset request error:", error);
+      // Still show success to not reveal if email exists
       setIsSuccess(true);
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -43,16 +43,16 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
+        callbackUrl,
         redirect: false,
       });
 
       if (result?.error) {
         setError(result.error);
         setIsLoading(false);
-      } else {
-        // Success - redirect to dashboard or callback URL
-        router.push(callbackUrl);
-        router.refresh();
+      } else if (result?.ok) {
+        // Success - use window.location for full page reload to ensure session is loaded
+        window.location.href = callbackUrl;
       }
     } catch {
       setError("An unexpected error occurred");

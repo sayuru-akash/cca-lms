@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Terminal,
   Lock,
@@ -20,10 +21,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function FirstLoginPage() {
+  const router = useRouter();
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const passwordRequirements = [
     { text: "At least 8 characters", met: newPassword.length >= 8 },
@@ -45,9 +49,32 @@ export default function FirstLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!allRequirementsMet) return;
+
     setIsLoading(true);
-    // TODO: Implement password change
-    setTimeout(() => setIsLoading(false), 1000);
+    setError("");
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push("/dashboard");
+      } else {
+        setError(data.error || "Failed to change password");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,6 +106,28 @@ export default function FirstLoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-lg border border-destructive bg-destructive/10 text-destructive text-sm flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Current Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-mono text-terminal-text-muted">
+                  Current Password
+                </label>
+                <Input
+                  type="password"
+                  placeholder="$ ••••••••"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
               {/* New Password */}
               <div className="space-y-2">
                 <label className="text-sm font-mono text-terminal-text-muted">
