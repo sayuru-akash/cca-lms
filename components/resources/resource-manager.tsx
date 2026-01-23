@@ -19,6 +19,8 @@ import {
   Eye,
   Edit,
   AlertCircle,
+  GripVertical,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FileUpload } from "./file-upload";
@@ -29,6 +31,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Resource {
   id: string;
@@ -61,6 +73,10 @@ export function ResourceManager({
   const [resources, setResources] = useState<Resource[]>([]);
   const [showUpload, setShowUpload] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingResource, setEditingResource] = useState<Resource | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchResources();
@@ -149,6 +165,95 @@ export function ResourceManager({
     }
   };
 
+  const handleEdit = (resource: Resource) => {
+    setEditingResource(resource);
+    setShowEdit(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingResource) return;
+
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("title", editingResource.title);
+      formData.append("description", editingResource.description || "");
+      formData.append("visibility", editingResource.visibility);
+      formData.append("downloadable", editingResource.downloadable.toString());
+
+      if (editingResource.externalUrl) {
+        formData.append("externalUrl", editingResource.externalUrl);
+      }
+      if (editingResource.textContent) {
+        formData.append("textContent", editingResource.textContent);
+      }
+
+      const response = await fetch(
+        `/api/admin/resources/${editingResource.id}`,
+        {
+          method: "PUT",
+          body: formData,
+        },
+      );
+
+      if (!response.ok) throw new Error("Failed to update resource");
+
+      toast.success("Resource updated successfully");
+      setShowEdit(false);
+      setEditingResource(null);
+      fetchResources();
+    } catch (error) {
+      toast.error("Failed to update resource");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDragStart = (index: number) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newResources = [...resources];
+    const draggedItem = newResources[draggedIndex];
+    newResources.splice(draggedIndex, 1);
+    newResources.splice(index, 0, draggedItem);
+
+    setResources(newResources);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = async () => {
+    if (draggedIndex === null) return;
+
+    try {
+      // Update order on server
+      const updates = resources.map((resource, index) => ({
+        id: resource.id,
+        order: index,
+      }));
+
+      const response = await fetch("/api/admin/resources/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+
+      if (!response.ok) throw new Error("Failed to reorder");
+
+      toast.success("Order updated");
+    } catch (error) {
+      toast.error("Failed to update order");
+      fetchResources(); // Revert on error
+    } finally {
+      setDraggedIndex(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -192,10 +297,24 @@ export function ResourceManager({
         </Card>
       ) : (
         <div className="space-y-3">
-          {resources.map((resource) => (
-            <Card key={resource.id} className="border-terminal-green/20">
+          {resources.map((resource, index) => (
+            <Card
+              key={resource.id}
+              className="border-terminal-green/20"
+              draggable={canEdit}
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDragEnd={handleDragEnd}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
+                  {/* Drag Handle */}
+                  {canEdit && (
+                    <div className="flex-shrink-0 mt-1 cursor-grab active:cursor-grabbing">
+                      <GripVertical className="h-5 w-5 text-terminal-text-muted" />
+                    </div>
+                  )}
+
                   {/* Icon */}
                   <div className="flex-shrink-0 mt-1">
                     {getResourceIcon(resource.type)}
@@ -278,6 +397,16 @@ export function ResourceManager({
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleEdit(resource)}
+                            title="Edit"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleDelete(resource.id)}
                             disabled={deleting === resource.id}
                             className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
@@ -334,6 +463,155 @@ export function ResourceManager({
             }}
             onCancel={() => setShowUpload(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEdit} onOpenChange={setShowEdit}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Resource</DialogTitle>
+            <DialogDescription>
+              Update resource details and settings
+            </DialogDescription>
+          </DialogHeader>
+          {editingResource && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  value={editingResource.title}
+                  onChange={(e) =>
+                    setEditingResource({
+                      ...editingResource,
+                      title: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingResource.description || ""}
+                  onChange={(e) =>
+                    setEditingResource({
+                      ...editingResource,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={3}
+                />
+              </div>
+
+              {editingResource.type === "EXTERNAL_LINK" && (
+                <div>
+                  <Label htmlFor="edit-url">URL</Label>
+                  <Input
+                    id="edit-url"
+                    type="url"
+                    value={editingResource.externalUrl || ""}
+                    onChange={(e) =>
+                      setEditingResource({
+                        ...editingResource,
+                        externalUrl: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              )}
+
+              {editingResource.type === "TEXT_NOTE" && (
+                <div>
+                  <Label htmlFor="edit-content">Content</Label>
+                  <Textarea
+                    id="edit-content"
+                    value={editingResource.textContent || ""}
+                    onChange={(e) =>
+                      setEditingResource({
+                        ...editingResource,
+                        textContent: e.target.value,
+                      })
+                    }
+                    rows={6}
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-visibility">Visibility</Label>
+                  <Select
+                    value={editingResource.visibility}
+                    onValueChange={(value: "PUBLIC" | "SCHEDULED" | "HIDDEN") =>
+                      setEditingResource({
+                        ...editingResource,
+                        visibility: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PUBLIC">Public</SelectItem>
+                      <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                      <SelectItem value="HIDDEN">Hidden</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {editingResource.type === "FILE" && (
+                  <div className="flex items-center space-x-2 pt-8">
+                    <input
+                      type="checkbox"
+                      id="edit-downloadable"
+                      checked={editingResource.downloadable}
+                      onChange={(e) =>
+                        setEditingResource({
+                          ...editingResource,
+                          downloadable: e.target.checked,
+                        })
+                      }
+                      className="rounded"
+                    />
+                    <Label htmlFor="edit-downloadable" className="font-normal">
+                      Allow downloads
+                    </Label>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowEdit(false);
+                    setEditingResource(null);
+                  }}
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
