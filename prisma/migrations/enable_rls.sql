@@ -33,6 +33,12 @@ ALTER TABLE "Course" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Module" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Lesson" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "LessonResource" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ResourceVersion" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Quiz" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "QuizQuestion" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "QuizAnswer" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "QuizAttempt" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "QuizResponse" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "CourseEnrollment" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "LessonProgress" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Submission" ENABLE ROW LEVEL SECURITY;
@@ -213,6 +219,255 @@ CREATE POLICY "resource_manage" ON "LessonResource" FOR ALL
       INNER JOIN "Module" m ON m.id = l."moduleId"
       INNER JOIN "Course" c ON c.id = m."courseId"
       WHERE l.id = "LessonResource"."lessonId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- RESOURCE VERSION POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "resource_version_view" ON "ResourceVersion";
+DROP POLICY IF EXISTS "resource_version_manage" ON "ResourceVersion";
+
+CREATE POLICY "resource_version_view" ON "ResourceVersion" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "LessonResource" lr
+      INNER JOIN "Lesson" l ON l.id = lr."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE lr.id = "ResourceVersion"."resourceId"
+      AND (
+        (l."isPublished" = true AND c.status = 'PUBLISHED')
+        OR c."lecturerId" = current_user_id()
+        OR current_user_role() = 'ADMIN'
+        OR EXISTS (
+          SELECT 1 FROM "CourseEnrollment"
+          WHERE "courseId" = c.id AND "userId" = current_user_id()
+        )
+      )
+    )
+  );
+
+CREATE POLICY "resource_version_manage" ON "ResourceVersion" FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM "LessonResource" lr
+      INNER JOIN "Lesson" l ON l.id = lr."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE lr.id = "ResourceVersion"."resourceId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- QUIZ POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "quiz_view" ON "Quiz";
+DROP POLICY IF EXISTS "quiz_manage" ON "Quiz";
+
+CREATE POLICY "quiz_view" ON "Quiz" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "Lesson" l
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE l.id = "Quiz"."lessonId"
+      AND (
+        (l."isPublished" = true AND c.status = 'PUBLISHED')
+        OR c."lecturerId" = current_user_id()
+        OR current_user_role() = 'ADMIN'
+        OR EXISTS (
+          SELECT 1 FROM "CourseEnrollment"
+          WHERE "courseId" = c.id AND "userId" = current_user_id()
+        )
+      )
+    )
+  );
+
+CREATE POLICY "quiz_manage" ON "Quiz" FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM "Lesson" l
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE l.id = "Quiz"."lessonId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- QUIZ QUESTION POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "quiz_question_view" ON "QuizQuestion";
+DROP POLICY IF EXISTS "quiz_question_manage" ON "QuizQuestion";
+
+CREATE POLICY "quiz_question_view" ON "QuizQuestion" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "Quiz" q
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE q.id = "QuizQuestion"."quizId"
+      AND (
+        (l."isPublished" = true AND c.status = 'PUBLISHED')
+        OR c."lecturerId" = current_user_id()
+        OR current_user_role() = 'ADMIN'
+        OR EXISTS (
+          SELECT 1 FROM "CourseEnrollment"
+          WHERE "courseId" = c.id AND "userId" = current_user_id()
+        )
+      )
+    )
+  );
+
+CREATE POLICY "quiz_question_manage" ON "QuizQuestion" FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM "Quiz" q
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE q.id = "QuizQuestion"."quizId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- QUIZ ANSWER POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "quiz_answer_view" ON "QuizAnswer";
+DROP POLICY IF EXISTS "quiz_answer_manage" ON "QuizAnswer";
+
+CREATE POLICY "quiz_answer_view" ON "QuizAnswer" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizQuestion" qq
+      INNER JOIN "Quiz" q ON q.id = qq."quizId"
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE qq.id = "QuizAnswer"."questionId"
+      AND (
+        (l."isPublished" = true AND c.status = 'PUBLISHED')
+        OR c."lecturerId" = current_user_id()
+        OR current_user_role() = 'ADMIN'
+        OR EXISTS (
+          SELECT 1 FROM "CourseEnrollment"
+          WHERE "courseId" = c.id AND "userId" = current_user_id()
+        )
+      )
+    )
+  );
+
+CREATE POLICY "quiz_answer_manage" ON "QuizAnswer" FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizQuestion" qq
+      INNER JOIN "Quiz" q ON q.id = qq."quizId"
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE qq.id = "QuizAnswer"."questionId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- QUIZ ATTEMPT POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "quiz_attempt_view_own" ON "QuizAttempt";
+DROP POLICY IF EXISTS "quiz_attempt_view_course" ON "QuizAttempt";
+DROP POLICY IF EXISTS "quiz_attempt_manage_own" ON "QuizAttempt";
+DROP POLICY IF EXISTS "quiz_attempt_manage_lecturer" ON "QuizAttempt";
+
+CREATE POLICY "quiz_attempt_view_own" ON "QuizAttempt" FOR SELECT
+  USING ("userId" = current_user_id());
+
+CREATE POLICY "quiz_attempt_view_course" ON "QuizAttempt" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "Quiz" q
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE q.id = "QuizAttempt"."quizId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+CREATE POLICY "quiz_attempt_manage_own" ON "QuizAttempt" FOR ALL
+  USING ("userId" = current_user_id());
+
+CREATE POLICY "quiz_attempt_manage_lecturer" ON "QuizAttempt" FOR UPDATE
+  USING (
+    "userId" = current_user_id()
+    OR EXISTS (
+      SELECT 1 FROM "Quiz" q
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE q.id = "QuizAttempt"."quizId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+-- ============================================================================
+-- QUIZ RESPONSE POLICIES
+-- ============================================================================
+
+DROP POLICY IF EXISTS "quiz_response_view_own" ON "QuizResponse";
+DROP POLICY IF EXISTS "quiz_response_view_lecturer" ON "QuizResponse";
+DROP POLICY IF EXISTS "quiz_response_manage_own" ON "QuizResponse";
+DROP POLICY IF EXISTS "quiz_response_manage_lecturer" ON "QuizResponse";
+
+CREATE POLICY "quiz_response_view_own" ON "QuizResponse" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizAttempt"
+      WHERE id = "QuizResponse"."attemptId"
+      AND "userId" = current_user_id()
+    )
+  );
+
+CREATE POLICY "quiz_response_view_lecturer" ON "QuizResponse" FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizAttempt" qa
+      INNER JOIN "Quiz" q ON q.id = qa."quizId"
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE qa.id = "QuizResponse"."attemptId"
+      AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
+    )
+  );
+
+CREATE POLICY "quiz_response_manage_own" ON "QuizResponse" FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizAttempt"
+      WHERE id = "QuizResponse"."attemptId"
+      AND "userId" = current_user_id()
+    )
+  );
+
+CREATE POLICY "quiz_response_manage_lecturer" ON "QuizResponse" FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM "QuizAttempt" qa
+      INNER JOIN "Quiz" q ON q.id = qa."quizId"
+      INNER JOIN "Lesson" l ON l.id = q."lessonId"
+      INNER JOIN "Module" m ON m.id = l."moduleId"
+      INNER JOIN "Course" c ON c.id = m."courseId"
+      WHERE qa.id = "QuizResponse"."attemptId"
       AND (c."lecturerId" = current_user_id() OR current_user_role() = 'ADMIN')
     )
   );
