@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/audit";
 
 // POST: Start or submit quiz attempt
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -71,6 +71,19 @@ export async function POST(request: NextRequest) {
           userId: session.user.id,
           attemptNumber,
           status: "IN_PROGRESS",
+        },
+      });
+
+      // Audit log
+      await createAuditLog({
+        userId: session.user.id,
+        action: "SUBMISSION_CREATED",
+        entityType: "QuizAttempt",
+        entityId: attempt.id,
+        metadata: {
+          quizId,
+          attemptNumber,
+          status: "STARTED",
         },
       });
 
@@ -175,6 +188,22 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      // Audit log
+      await createAuditLog({
+        userId: session.user.id,
+        action: "SUBMISSION_GRADED",
+        entityType: "QuizAttempt",
+        entityId: attemptId,
+        metadata: {
+          quizId,
+          status: "SUBMITTED",
+          score: totalScore,
+          maxScore,
+          percentage: Math.round(percentage),
+          attemptNumber: attempt.attemptNumber,
+        },
+      });
+
       return NextResponse.json(submittedAttempt);
     }
 
@@ -191,7 +220,7 @@ export async function POST(request: NextRequest) {
 // GET: Get user's attempts for a quiz
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

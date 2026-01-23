@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { uploadToR2, getSignedUrl } from "@/lib/r2";
+import { createAuditLog } from "@/lib/audit";
 
 // POST: Upload resource to lesson
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user || !["ADMIN", "LECTURER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -115,6 +115,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Audit log
+    await createAuditLog({
+      userId: session.user.id,
+      action: "FILE_UPLOADED",
+      entityType: "LessonResource",
+      entityId: resource.id,
+      metadata: {
+        fileName: fileName || undefined,
+        type,
+        lessonId,
+        lessonTitle: resource.lesson.title,
+        visibility,
+        downloadable,
+      },
+    });
+
     return NextResponse.json(resource, { status: 201 });
   } catch (error) {
     console.error("Error creating resource:", error);
@@ -128,7 +144,7 @@ export async function POST(request: NextRequest) {
 // GET: Get resources for a lesson
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

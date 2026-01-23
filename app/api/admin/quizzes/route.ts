@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/audit";
 
 // POST: Create quiz for a lesson
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user || !["ADMIN", "LECTURER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -91,6 +91,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Audit log
+    await createAuditLog({
+      userId: session.user.id,
+      action: "LESSON_CREATED",
+      entityType: "Quiz",
+      entityId: quiz.id,
+      metadata: {
+        lessonId,
+        title,
+        questionCount: questions.length,
+        timeLimit,
+        passingScore: passingScore || 70,
+        maxAttempts,
+      },
+    });
+
     return NextResponse.json(quiz, { status: 201 });
   } catch (error) {
     console.error("Error creating quiz:", error);
@@ -104,7 +120,7 @@ export async function POST(request: NextRequest) {
 // GET: Get quiz for a lesson
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

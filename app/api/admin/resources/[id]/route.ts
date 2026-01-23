@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { uploadToR2, getSignedUrl, deleteFromR2 } from "@/lib/r2";
+import { createAuditLog } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
 // GET: Get single resource with versions
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT: Update resource or upload new version
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user || !["ADMIN", "LECTURER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -149,6 +149,21 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     });
 
+    // Audit log
+    await createAuditLog({
+      userId: session.user.id,
+      action: "LESSON_UPDATED",
+      entityType: "LessonResource",
+      entityId: id,
+      metadata: {
+        previousVersion: existing.version,
+        newVersion: updated.version,
+        createNewVersion: createNewVersion || false,
+        fieldsUpdated: Object.keys(updateData),
+        fileName: file?.name || undefined,
+      },
+    });
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Error updating resource:", error);
@@ -162,7 +177,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE: Delete resource and all versions
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user || !["ADMIN", "LECTURER"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -196,6 +211,21 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Delete from database (cascade will handle versions)
     await prisma.lessonResource.delete({
       where: { id },
+    });
+
+    // Audit log
+    await createAuditLog({
+      userId: session.user.id,
+      action: "FILE_DELETED",
+      entityType: "LessonResource",
+      entityId: id,
+      metadata: {
+        fileName: resource.fileName,
+        type: resource.type,
+        title: resource.title,
+        lessonId: resource.lessonId,
+        versionsDeleted: resource.versions.length,
+      },
     });
 
     return NextResponse.json({ message: "Resource deleted successfully" });

@@ -119,7 +119,6 @@ export default function ProgrammeContentClient({
   const [lessonForm, setLessonForm] = useState({
     title: "",
     description: "",
-    content: "",
     videoUrl: "",
     type: "VIDEO",
     duration: 0,
@@ -256,7 +255,6 @@ export default function ProgrammeContentClient({
     setLessonForm({
       title: "",
       description: "",
-      content: "",
       videoUrl: "",
       type: "VIDEO",
       duration: 0,
@@ -271,7 +269,7 @@ export default function ProgrammeContentClient({
     setLessonForm({
       title: lesson.title,
       description: lesson.description || "",
-      content: lesson.content || "",
+
       videoUrl: (lesson as any).videoUrl || "",
       type: lesson.type,
       duration: lesson.duration,
@@ -595,14 +593,18 @@ export default function ProgrammeContentClient({
                                       <Edit className="h-4 w-4 mr-2" />
                                       Edit Lesson
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        openResourceDialog(lesson.id)
-                                      }
-                                    >
-                                      <Upload className="h-4 w-4 mr-2" />
-                                      Manage Resources
-                                    </DropdownMenuItem>
+                                    {lesson.type !== "VIDEO" && (
+                                      <DropdownMenuItem
+                                        onClick={() =>
+                                          openResourceDialog(lesson.id)
+                                        }
+                                      >
+                                        <Upload className="h-4 w-4 mr-2" />
+                                        {lesson.type === "READING"
+                                          ? "Manage Documents"
+                                          : "Manage Resources"}
+                                      </DropdownMenuItem>
+                                    )}
                                     {lesson.type === "QUIZ" && (
                                       <DropdownMenuItem
                                         onClick={() =>
@@ -774,22 +776,28 @@ export default function ProgrammeContentClient({
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lesson-duration">Duration (minutes)</Label>
-                <Input
-                  id="lesson-duration"
-                  type="number"
-                  min="0"
-                  value={lessonForm.duration}
-                  onChange={(e) =>
-                    setLessonForm({
-                      ...lessonForm,
-                      duration: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  disabled={isLessonSubmitting}
-                />
-              </div>
+              {(lessonForm.type === "VIDEO" || lessonForm.type === "QUIZ") && (
+                <div className="space-y-2">
+                  <Label htmlFor="lesson-duration">
+                    {lessonForm.type === "VIDEO"
+                      ? "Duration (minutes)"
+                      : "Time Limit (minutes)"}
+                  </Label>
+                  <Input
+                    id="lesson-duration"
+                    type="number"
+                    min="0"
+                    value={lessonForm.duration}
+                    onChange={(e) =>
+                      setLessonForm({
+                        ...lessonForm,
+                        duration: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    disabled={isLessonSubmitting}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -811,66 +819,70 @@ export default function ProgrammeContentClient({
 
             {lessonForm.type === "VIDEO" && (
               <div className="space-y-2">
-                <Label htmlFor="lesson-videoUrl">Video URL</Label>
+                <Label htmlFor="lesson-videoUrl">Video URL *</Label>
                 <Input
                   id="lesson-videoUrl"
                   value={lessonForm.videoUrl}
                   onChange={(e) =>
                     setLessonForm({ ...lessonForm, videoUrl: e.target.value })
                   }
-                  placeholder="R2 video key or external URL (YouTube, Vimeo, etc.)"
+                  placeholder="https://youtube.com/watch?v=... or https://vimeo.com/..."
                   disabled={isLessonSubmitting}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter R2 file key for uploaded videos or external video URL
+                  💡 Use YouTube, Vimeo, or other video platforms to save
+                  storage costs
                 </p>
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="lesson-content">
-                {lessonForm.type === "QUIZ"
-                  ? "Quiz Instructions"
-                  : lessonForm.type === "ASSIGNMENT"
-                    ? "Assignment Brief"
-                    : "Content"}
-              </Label>
-              <Textarea
-                id="lesson-content"
-                value={lessonForm.content}
-                onChange={(e) =>
-                  setLessonForm({ ...lessonForm, content: e.target.value })
-                }
-                placeholder={
-                  lessonForm.type === "QUIZ"
-                    ? "Instructions for taking this quiz..."
-                    : lessonForm.type === "ASSIGNMENT"
-                      ? "Assignment description and requirements..."
-                      : lessonForm.type === "READING"
-                        ? "Reading material or article content..."
-                        : "Lesson overview or additional notes..."
-                }
-                rows={4}
-                disabled={isLessonSubmitting}
-              />
-            </div>
+            {lessonForm.type === "READING" && (
+              <div className="space-y-2">
+                <Label htmlFor="lesson-videoUrl">
+                  Article/Resource URL (Optional)
+                </Label>
+                <Input
+                  id="lesson-videoUrl"
+                  value={lessonForm.videoUrl}
+                  onChange={(e) =>
+                    setLessonForm({ ...lessonForm, videoUrl: e.target.value })
+                  }
+                  placeholder="https://example.com/article or leave empty to upload files"
+                  disabled={isLessonSubmitting}
+                />
+                <p className="text-xs text-muted-foreground">
+                  💡 Add an article link here, or leave empty and use "Manage
+                  Documents" to upload PDFs/files
+                </p>
+              </div>
+            )}
 
             {lessonForm.type === "QUIZ" && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-900">
                   <HelpCircle className="h-4 w-4 inline mr-1" />
-                  After creating the lesson, use "Manage Quiz" to add questions
-                  and answers.
+                  After creating, use "Manage Quiz" to add questions and
+                  answers.
                 </p>
               </div>
             )}
 
-            {lessonForm.type === "VIDEO" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
+            {lessonForm.type === "READING" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-900">
                   <Upload className="h-4 w-4 inline mr-1" />
-                  After creating the lesson, use "Manage Resources" to upload
-                  video files to R2.
+                  Use "Manage Documents" to upload PDFs, docs, slides, images,
+                  or link to articles.
+                </p>
+              </div>
+            )}
+
+            {lessonForm.type === "ASSIGNMENT" && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-sm text-purple-900">
+                  <Upload className="h-4 w-4 inline mr-1" />
+                  Use "Manage Resources" to attach assignment files, rubrics, or
+                  reference materials.
                 </p>
               </div>
             )}

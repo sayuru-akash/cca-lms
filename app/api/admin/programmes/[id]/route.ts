@@ -25,10 +25,10 @@ export async function GET(
       include: {
         modules: {
           orderBy: { order: "asc" },
-          select: {
-            id: true,
-            title: true,
-            order: true,
+          include: {
+            lessons: {
+              orderBy: { order: "asc" },
+            },
             _count: {
               select: {
                 lessons: true,

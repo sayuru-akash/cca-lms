@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/audit";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, content, moduleId, type, duration } = body;
+    const { title, description, moduleId, type, duration, videoUrl } = body;
 
     if (!title || !moduleId) {
       return NextResponse.json(
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         description: description || null,
-        content: content || null,
+        videoUrl: videoUrl || null,
         moduleId,
         type: type || "VIDEO",
         duration: duration || 0,
@@ -49,6 +50,14 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    await createAuditLog({
+      userId: session.user.id,
+      action: "LESSON_CREATED",
+      entityType: "Lesson",
+      entityId: lesson.id,
+      metadata: { title, type, moduleId },
     });
 
     return NextResponse.json(
