@@ -72,7 +72,8 @@ export function ResourceManager({
       const response = await fetch(`/api/admin/resources?lessonId=${lessonId}`);
       if (!response.ok) throw new Error("Failed to fetch resources");
       const data = await response.json();
-      setResources(data.resources || []);
+      // API returns array directly, not wrapped in { resources: [...] }
+      setResources(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("Failed to load resources");
       console.error(error);
@@ -158,15 +159,9 @@ export function ResourceManager({
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* Header with Add Button */}
       {canEdit && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-lg">Lesson Resources</h3>
-            <p className="text-sm text-terminal-text-muted">
-              Manage files, links, and materials
-            </p>
-          </div>
+        <div className="flex items-center justify-end">
           <Button onClick={() => setShowUpload(true)} size="sm">
             <Plus className="h-4 w-4 mr-1" />
             Add Resource
