@@ -10,12 +10,12 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { UserRole } from "@prisma/client";
+import type { $Enums } from "@prisma/client";
 
 interface LecturerDashboardProps {
   user: {
     id: string;
-    role: UserRole;
+    role: $Enums.UserRole;
     name?: string | null;
     email?: string | null;
     image?: string | null;
