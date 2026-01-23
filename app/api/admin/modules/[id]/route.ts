@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 // GET /api/admin/modules/[id] - Get single module
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -48,7 +48,7 @@ export async function GET(
     console.error("Error fetching module:", error);
     return NextResponse.json(
       { error: "Failed to fetch module" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -56,7 +56,7 @@ export async function GET(
 // PUT /api/admin/modules/[id] - Update module
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -93,7 +93,7 @@ export async function PUT(
     console.error("Error updating module:", error);
     return NextResponse.json(
       { error: "Failed to update module" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -101,7 +101,7 @@ export async function PUT(
 // DELETE /api/admin/modules/[id] - Delete module
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -133,7 +133,7 @@ export async function DELETE(
         {
           error: "Cannot delete module with lessons. Delete all lessons first.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -148,7 +148,7 @@ export async function DELETE(
     console.error("Error deleting module:", error);
     return NextResponse.json(
       { error: "Failed to delete module" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

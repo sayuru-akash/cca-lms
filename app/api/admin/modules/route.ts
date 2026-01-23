@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!title || !courseId) {
       return NextResponse.json(
         { error: "Title and courseId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -50,13 +50,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { module, message: "Module created successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error creating module:", error);
     return NextResponse.json(
       { error: "Failed to create module" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

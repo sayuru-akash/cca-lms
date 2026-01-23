@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(lessons)) {
       return NextResponse.json(
         { error: "Invalid lessons array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
         prisma.lesson.update({
           where: { id: lesson.id },
           data: { order: lesson.order },
-        })
-      )
+        }),
+      ),
     );
 
     return NextResponse.json({
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     console.error("Error reordering lessons:", error);
     return NextResponse.json(
       { error: "Failed to reorder lessons" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

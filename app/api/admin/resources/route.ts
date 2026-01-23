@@ -23,21 +23,21 @@ export async function POST(request: NextRequest) {
     if (!file || !lessonId) {
       return NextResponse.json(
         { error: "File and lessonId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Upload to R2
     const buffer = Buffer.from(await file.arrayBuffer());
     const key = `resources/${Date.now()}-${file.name}`;
-    
+
     await r2.send(
       new PutObjectCommand({
         Bucket: process.env.R2_BUCKET_NAME!,
         Key: key,
         Body: buffer,
         ContentType: file.type,
-      })
+      }),
     );
 
     // Get the next order number
@@ -62,13 +62,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { resource, message: "Resource uploaded successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error uploading resource:", error);
     return NextResponse.json(
       { error: "Failed to upload resource" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     if (!lessonId) {
       return NextResponse.json(
         { error: "lessonId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching resources:", error);
     return NextResponse.json(
       { error: "Failed to fetch resources" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

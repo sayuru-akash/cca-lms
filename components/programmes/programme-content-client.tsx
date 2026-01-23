@@ -94,7 +94,7 @@ export default function ProgrammeContentClient({
   const [programme, setProgramme] = useState<Programme | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
 
   // Module dialogs
@@ -137,7 +137,7 @@ export default function ProgrammeContentClient({
 
       // Expand all modules by default
       const moduleIds = new Set(
-        data.programme.modules.map((m: Module) => m.id)
+        data.programme.modules.map((m: Module) => m.id),
       );
       setExpandedModules(moduleIds);
     } catch (error) {
@@ -214,7 +214,7 @@ export default function ProgrammeContentClient({
   const handleDeleteModule = async (module: Module) => {
     if (module._count.lessons > 0) {
       alert(
-        "Cannot delete module with lessons. Please delete all lessons first."
+        "Cannot delete module with lessons. Please delete all lessons first.",
       );
       return;
     }
@@ -359,9 +359,7 @@ export default function ProgrammeContentClient({
       <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <p className="text-terminal-text-muted mb-4">
-              Programme not found
-            </p>
+            <p className="text-terminal-text-muted mb-4">Programme not found</p>
             <Button onClick={() => router.push("/programmes")}>
               Back to Programmes
             </Button>
@@ -564,7 +562,9 @@ export default function ProgrammeContentClient({
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                    <DropdownMenuLabel>
+                                      Actions
+                                    </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
                                       onClick={() =>

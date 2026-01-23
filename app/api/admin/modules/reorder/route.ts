@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(modules)) {
       return NextResponse.json(
         { error: "Invalid modules array" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
         prisma.module.update({
           where: { id: module.id },
           data: { order: module.order },
-        })
-      )
+        }),
+      ),
     );
 
     return NextResponse.json({
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     console.error("Error reordering modules:", error);
     return NextResponse.json(
       { error: "Failed to reorder modules" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

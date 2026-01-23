@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 // GET /api/admin/lessons/[id] - Get single lesson
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -41,7 +41,7 @@ export async function GET(
     console.error("Error fetching lesson:", error);
     return NextResponse.json(
       { error: "Failed to fetch lesson" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -49,7 +49,7 @@ export async function GET(
 // PUT /api/admin/lessons/[id] - Update lesson
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -89,7 +89,7 @@ export async function PUT(
     console.error("Error updating lesson:", error);
     return NextResponse.json(
       { error: "Failed to update lesson" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -97,7 +97,7 @@ export async function PUT(
 // DELETE /api/admin/lessons/[id] - Delete lesson
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -127,7 +127,7 @@ export async function DELETE(
     console.error("Error deleting lesson:", error);
     return NextResponse.json(
       { error: "Failed to delete lesson" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

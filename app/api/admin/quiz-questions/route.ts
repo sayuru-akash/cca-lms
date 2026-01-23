@@ -14,12 +14,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { lessonId, question, type, options, correctAnswer, points, explanation } = body;
+    const {
+      lessonId,
+      question,
+      type,
+      options,
+      correctAnswer,
+      points,
+      explanation,
+    } = body;
 
     if (!lessonId || !question || !type) {
       return NextResponse.json(
         { error: "lessonId, question, and type are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -47,13 +55,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { question: quizQuestion, message: "Question created successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error creating quiz question:", error);
     return NextResponse.json(
       { error: "Failed to create quiz question" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -73,7 +81,7 @@ export async function GET(request: NextRequest) {
     if (!lessonId) {
       return NextResponse.json(
         { error: "lessonId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -87,7 +95,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching quiz questions:", error);
     return NextResponse.json(
       { error: "Failed to fetch quiz questions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // DELETE /api/admin/resources/[id] - Delete resource
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -27,7 +27,7 @@ export async function DELETE(
     if (!resource) {
       return NextResponse.json(
         { error: "Resource not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function DELETE(
           new DeleteObjectCommand({
             Bucket: process.env.R2_BUCKET_NAME!,
             Key: resource.url,
-          })
+          }),
         );
       } catch (error) {
         console.error("Error deleting from R2:", error);
@@ -57,7 +57,7 @@ export async function DELETE(
     console.error("Error deleting resource:", error);
     return NextResponse.json(
       { error: "Failed to delete resource" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,7 +65,7 @@ export async function DELETE(
 // PUT /api/admin/resources/[id] - Update resource
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -95,7 +95,7 @@ export async function PUT(
     console.error("Error updating resource:", error);
     return NextResponse.json(
       { error: "Failed to update resource" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

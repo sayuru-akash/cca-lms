@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 // GET /api/admin/quiz-questions/[id] - Get single question
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -25,7 +25,7 @@ export async function GET(
     if (!question) {
       return NextResponse.json(
         { error: "Question not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -34,7 +34,7 @@ export async function GET(
     console.error("Error fetching question:", error);
     return NextResponse.json(
       { error: "Failed to fetch question" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -42,7 +42,7 @@ export async function GET(
 // PUT /api/admin/quiz-questions/[id] - Update question
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -53,7 +53,8 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { question, type, options, correctAnswer, points, explanation } = body;
+    const { question, type, options, correctAnswer, points, explanation } =
+      body;
 
     const updatedQuestion = await prisma.quizQuestion.update({
       where: { id },
@@ -75,7 +76,7 @@ export async function PUT(
     console.error("Error updating question:", error);
     return NextResponse.json(
       { error: "Failed to update question" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -83,7 +84,7 @@ export async function PUT(
 // DELETE /api/admin/quiz-questions/[id] - Delete question
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const session = await auth();
@@ -101,7 +102,7 @@ export async function DELETE(
     if (!question) {
       return NextResponse.json(
         { error: "Question not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -116,7 +117,7 @@ export async function DELETE(
     console.error("Error deleting question:", error);
     return NextResponse.json(
       { error: "Failed to delete question" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
