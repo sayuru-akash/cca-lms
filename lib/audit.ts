@@ -1,5 +1,5 @@
-import { prisma } from './prisma';
-import type { AuditAction, Prisma } from '@prisma/client';
+import { prisma } from "./prisma";
+import type { AuditAction, Prisma } from "@prisma/client";
 
 /**
  * Create an audit log entry
@@ -28,7 +28,7 @@ export async function createAuditLog(data: {
     });
   } catch (error) {
     // Log the error but don't throw - audit logging shouldn't break the app
-    console.error('Failed to create audit log:', error);
+    console.error("Failed to create audit log:", error);
   }
 }
 
@@ -45,15 +45,15 @@ export async function createAuditLogFromRequest(
     entityId?: string;
     metadata?: Record<string, unknown>;
   },
-  request?: Request
+  request?: Request,
 ) {
   const ipAddress = request
-    ? request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
+    ? request.headers.get("x-forwarded-for")?.split(",")[0] ||
+      request.headers.get("x-real-ip") ||
       undefined
     : undefined;
 
-  const userAgent = request?.headers.get('user-agent') || undefined;
+  const userAgent = request?.headers.get("user-agent") || undefined;
 
   return createAuditLog({
     ...data,
@@ -70,7 +70,7 @@ export async function createAuditLogFromRequest(
 export async function getUserAuditLogs(userId: string, limit = 100) {
   return prisma.auditLog.findMany({
     where: { userId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 }
@@ -84,11 +84,11 @@ export async function getUserAuditLogs(userId: string, limit = 100) {
 export async function getEntityAuditLogs(
   entityType: string,
   entityId: string,
-  limit = 100
+  limit = 100,
 ) {
   return prisma.auditLog.findMany({
     where: { entityType, entityId },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: limit,
   });
 }
@@ -113,14 +113,16 @@ export async function getAuditLogs(filters: {
   if (filters.entityType) where.entityType = filters.entityType;
   if (filters.startDate || filters.endDate) {
     where.createdAt = {};
-    if (filters.startDate) (where.createdAt as { gte?: Date }).gte = filters.startDate;
-    if (filters.endDate) (where.createdAt as { lte?: Date }).lte = filters.endDate;
+    if (filters.startDate)
+      (where.createdAt as { gte?: Date }).gte = filters.startDate;
+    if (filters.endDate)
+      (where.createdAt as { lte?: Date }).lte = filters.endDate;
   }
 
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: filters.limit || 50,
       skip: filters.offset || 0,
       include: {
@@ -147,16 +149,16 @@ export const auditActions = {
   userCreated: (userId: string, entityId: string) =>
     createAuditLog({
       userId,
-      action: 'USER_CREATED',
-      entityType: 'User',
+      action: "USER_CREATED",
+      entityType: "User",
       entityId,
     }),
 
   userInvited: (userId: string, entityId: string, email: string) =>
     createAuditLog({
       userId,
-      action: 'USER_INVITED',
-      entityType: 'User',
+      action: "USER_INVITED",
+      entityType: "User",
       entityId,
       metadata: { invitedEmail: email },
     }),
@@ -165,18 +167,18 @@ export const auditActions = {
     createAuditLogFromRequest(
       {
         userId,
-        action: 'USER_LOGIN',
-        entityType: 'User',
+        action: "USER_LOGIN",
+        entityType: "User",
         entityId: userId,
       },
-      request
+      request,
     ),
 
   userLogout: (userId: string) =>
     createAuditLog({
       userId,
-      action: 'USER_LOGOUT',
-      entityType: 'User',
+      action: "USER_LOGOUT",
+      entityType: "User",
       entityId: userId,
     }),
 
@@ -184,8 +186,8 @@ export const auditActions = {
   courseCreated: (userId: string, courseId: string, title: string) =>
     createAuditLog({
       userId,
-      action: 'COURSE_CREATED',
-      entityType: 'Course',
+      action: "COURSE_CREATED",
+      entityType: "Course",
       entityId: courseId,
       metadata: { title },
     }),
@@ -193,26 +195,66 @@ export const auditActions = {
   courseUpdated: (userId: string, courseId: string) =>
     createAuditLog({
       userId,
-      action: 'COURSE_UPDATED',
-      entityType: 'Course',
+      action: "COURSE_UPDATED",
+      entityType: "Course",
       entityId: courseId,
     }),
 
   coursePublished: (userId: string, courseId: string, title: string) =>
     createAuditLog({
       userId,
-      action: 'COURSE_PUBLISHED',
-      entityType: 'Course',
+      action: "COURSE_PUBLISHED",
+      entityType: "Course",
       entityId: courseId,
       metadata: { title },
+    }),
+
+  // Programme actions (alias for course)
+  programmeCreated: (userId: string, programmeId: string) =>
+    createAuditLog({
+      userId,
+      action: "COURSE_CREATED",
+      entityType: "Course",
+      entityId: programmeId,
+    }),
+
+  programmeUpdated: (
+    userId: string,
+    programmeId: string,
+    before: any,
+    after: any,
+  ) =>
+    createAuditLog({
+      userId,
+      action: "COURSE_UPDATED",
+      entityType: "Course",
+      entityId: programmeId,
+      metadata: { before, after },
+    }),
+
+  programmeArchived: (userId: string, programmeId: string) =>
+    createAuditLog({
+      userId,
+      action: "COURSE_UPDATED",
+      entityType: "Course",
+      entityId: programmeId,
+      metadata: { status: "ARCHIVED" },
+    }),
+
+  programmePublished: (userId: string, programmeId: string) =>
+    createAuditLog({
+      userId,
+      action: "COURSE_PUBLISHED",
+      entityType: "Course",
+      entityId: programmeId,
     }),
 
   // Enrollment actions
   enrollmentCreated: (userId: string, enrollmentId: string, courseId: string) =>
     createAuditLog({
       userId,
-      action: 'ENROLLMENT_CREATED',
-      entityType: 'CourseEnrollment',
+      action: "ENROLLMENT_CREATED",
+      entityType: "CourseEnrollment",
       entityId: enrollmentId,
       metadata: { courseId },
     }),
@@ -222,12 +264,12 @@ export const auditActions = {
     userId: string,
     fileId: string,
     fileName: string,
-    fileType: string
+    fileType: string,
   ) =>
     createAuditLog({
       userId,
-      action: 'FILE_UPLOADED',
-      entityType: 'UploadedFile',
+      action: "FILE_UPLOADED",
+      entityType: "UploadedFile",
       entityId: fileId,
       metadata: { fileName, fileType },
     }),
@@ -235,9 +277,56 @@ export const auditActions = {
   fileDownloaded: (userId: string, fileId: string, fileName: string) =>
     createAuditLog({
       userId,
-      action: 'FILE_DOWNLOADED',
-      entityType: 'UploadedFile',
+      action: "FILE_DOWNLOADED",
+      entityType: "UploadedFile",
       entityId: fileId,
       metadata: { fileName },
+    }),
+
+  // User management actions
+  userCreated: (
+    userId: string,
+    targetUserId: string,
+    email: string,
+    role: string,
+  ) =>
+    createAuditLog({
+      userId,
+      action: "USER_CREATED",
+      entityType: "User",
+      entityId: targetUserId,
+      metadata: { email, role },
+    }),
+
+  userUpdated: (
+    userId: string,
+    targetUserId: string,
+    before: any,
+    after: any,
+  ) =>
+    createAuditLog({
+      userId,
+      action: "USER_UPDATED",
+      entityType: "User",
+      entityId: targetUserId,
+      metadata: { before, after },
+    }),
+
+  userDisabled: (userId: string, targetUserId: string, email: string) =>
+    createAuditLog({
+      userId,
+      action: "USER_UPDATED",
+      entityType: "User",
+      entityId: targetUserId,
+      metadata: { email, status: "DISABLED" },
+    }),
+
+  userEnabled: (userId: string, targetUserId: string, email: string) =>
+    createAuditLog({
+      userId,
+      action: "USER_UPDATED",
+      entityType: "User",
+      entityId: targetUserId,
+      metadata: { email, status: "ACTIVE" },
     }),
 };

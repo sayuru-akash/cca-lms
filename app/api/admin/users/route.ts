@@ -1,0 +1,192 @@
+import { NextResponse } from "next/server";
+import { hash } from "bcryptjs";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { auditActions } from "@/lib/audit";
+
+export const runtime = "nodejs";
+
+// GET /api/admin/users - List all users with filters
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+
+    // Check if user is authenticated and is an admin
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+    const role = searchParams.get("role") || "";
+    const status = searchParams.get("status") || "";
+
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (role) {
+      where.role = role;
+    }
+
+    if (status) {
+      where.status = status.toUpperCase();
+    }
+
+    // Fetch users and total count
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              courses: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+      }),
+      prisma.user.count({ where }),
+    ]);
+
+    return NextResponse.json({
+      users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch users" },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/admin/users - Create a new user
+export async function POST(request: Request) {
+  try {
+    const session = await auth();
+
+    // Check if user is authenticated and is an admin
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { name, email, role, generatePassword } = body;
+
+    // Validation
+    if (!email || !email.includes("@")) {
+      return NextResponse.json(
+        { error: "Valid email is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!role || !["STUDENT", "LECTURER", "ADMIN"].includes(role)) {
+      return NextResponse.json(
+        { error: "Valid role is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!name || name.trim().length < 2) {
+      return NextResponse.json(
+        { error: "Name must be at least 2 characters" },
+        { status: 400 },
+      );
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "User with this email already exists" },
+        { status: 409 },
+      );
+    }
+
+    // Generate password or use provided one
+    const password = generatePassword
+      ? Math.random().toString(36).slice(-12) +
+        Math.random().toString(36).slice(-12).toUpperCase() +
+        "!@#"
+      : body.password;
+
+    if (!password || password.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters" },
+        { status: 400 },
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await hash(password, 12);
+
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        name: name.trim(),
+        email: email.toLowerCase(),
+        password: hashedPassword,
+        role,
+        status: "ACTIVE",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    // Audit log
+    await auditActions.userCreated(
+      session.user.id,
+      user.id,
+      user.email,
+      user.role,
+    );
+
+    // Return user and generated password (if generated)
+    return NextResponse.json({
+      user,
+      ...(generatePassword && { generatedPassword: password }),
+    });
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return NextResponse.json(
+      { error: "Failed to create user" },
+      { status: 500 },
+    );
+  }
+}

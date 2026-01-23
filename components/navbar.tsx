@@ -18,12 +18,9 @@ import { cn } from "@/lib/cn";
 import { ThemeToggle } from "./theme-toggle";
 
 const navItems = [
-  { href: "/", label: "Home", icon: Home },
-  { href: "/courses", label: "Courses", icon: BookOpen },
-  { href: "/students", label: "Students", icon: Users },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/resources", label: "Resources", icon: FileText },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: Home },
+  { href: "/programmes", label: "Programmes", icon: BookOpen },
+  { href: "/users", label: "Users", icon: Users },
 ];
 
 export function Navbar() {
