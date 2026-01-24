@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Users,
   Search,
@@ -20,6 +21,7 @@ import {
   KeyRound,
   GraduationCap,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,6 +90,7 @@ interface Enrollment {
 }
 
 export default function UsersClient() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"STUDENT" | "LECTURER">("STUDENT");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -518,10 +521,20 @@ export default function UsersClient() {
               Create and manage student and lecturer accounts
             </p>
           </div>
-          <Button className="gap-2" onClick={openCreateDialog}>
-            <Plus className="h-4 w-4" />
-            Add {activeTab === "STUDENT" ? "Student" : "Lecturer"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              className="gap-2 border-terminal-green/40 text-terminal-green hover:bg-terminal-green/10"
+              variant="outline"
+              onClick={() => router.push("/bulk-enroll")}
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Enroll
+            </Button>
+            <Button className="gap-2" onClick={openCreateDialog}>
+              <Plus className="h-4 w-4" />
+              Add {activeTab === "STUDENT" ? "Student" : "Lecturer"}
+            </Button>
+          </div>
         </div>
 
         <div className="flex gap-2 mb-6">
