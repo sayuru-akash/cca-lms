@@ -32,14 +32,12 @@ const lecturerNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/programmes", label: "My Programmes", icon: BookOpen },
   { href: "/students", label: "Students", icon: GraduationCap },
-  { href: "/resources", label: "Resources", icon: FolderOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const studentNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
   { href: "/my-programmes", label: "My Programmes", icon: BookOpen },
-  { href: "/resources", label: "Resources", icon: FolderOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
