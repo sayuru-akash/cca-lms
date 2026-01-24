@@ -114,47 +114,54 @@ export async function GET(request: Request) {
         where: { role: "LECTURER", status: "ACTIVE" },
       }),
 
-      // Total enrollments (all time)
-      prisma.courseEnrollment.count(
-        programmeId ? { where: programmeFilter } : undefined,
-      ),
+      // Total enrollments (all time, students only)
+      prisma.courseEnrollment.count({
+        where: {
+          ...programmeFilter,
+          user: { role: "STUDENT" },
+        },
+      }),
 
-      // Active enrollments (current period)
+      // Active enrollments (current period, students only)
       prisma.courseEnrollment.count({
         where: {
           ...programmeFilter,
           enrolledAt: dateFilter,
           status: "ACTIVE",
+          user: { role: "STUDENT" },
         },
       }),
 
-      // Completed enrollments (all time for completion rate)
+      // Completed enrollments (all time for completion rate, students only)
       prisma.courseEnrollment.count({
         where: {
           ...programmeFilter,
           status: "COMPLETED",
+          user: { role: "STUDENT" },
         },
       }),
 
-      // Completed enrollments in current period (for display)
+      // Completed enrollments in current period (for display, students only)
       prisma.courseEnrollment.count({
         where: {
           ...programmeFilter,
           status: "COMPLETED",
           completedAt: dateFilter,
+          user: { role: "STUDENT" },
         },
       }),
 
-      // Previous period enrollments for trend
+      // Previous period enrollments for trend (students only)
       prisma.courseEnrollment.count({
         where: {
           ...programmeFilter,
           enrolledAt: previousDateFilter,
           status: "ACTIVE",
+          user: { role: "STUDENT" },
         },
       }),
 
-      // Top programmes by enrollment (in current period)
+      // Top programmes by enrollment (in current period, students only)
       prisma.course
         .findMany({
           where: programmeId
@@ -167,6 +174,7 @@ export async function GET(request: Request) {
             enrollments: {
               where: {
                 enrolledAt: dateFilter,
+                user: { role: "STUDENT" },
               },
               select: {
                 id: true,
@@ -187,7 +195,7 @@ export async function GET(request: Request) {
             .slice(0, programmeId ? 1 : 10),
         ),
 
-      // Programme completion rates
+      // Programme completion rates (students only)
       prisma.course.findMany({
         where: programmeId ? { id: programmeId } : { status: "PUBLISHED" },
         select: {
@@ -196,6 +204,7 @@ export async function GET(request: Request) {
           enrollments: {
             where: {
               enrolledAt: { lte: endDate },
+              user: { role: "STUDENT" },
             },
             select: {
               status: true,
@@ -239,7 +248,7 @@ export async function GET(request: Request) {
         },
       }),
 
-      // Active students today (logged in last 24 hours)
+      // Active students today (logged in last 24 hours, students only)
       prisma.auditLog
         .findMany({
           where: {
@@ -247,19 +256,25 @@ export async function GET(request: Request) {
             createdAt: {
               gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
             },
+            user: {
+              role: "STUDENT",
+            },
           },
           distinct: ["userId"],
           select: { userId: true },
         })
         .then((logs) => logs.length),
 
-      // Active students this week
+      // Active students this week (students only)
       prisma.auditLog
         .findMany({
           where: {
             action: "USER_LOGIN",
             createdAt: {
               gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            },
+            user: {
+              role: "STUDENT",
             },
           },
           distinct: ["userId"],
@@ -329,24 +344,26 @@ export async function GET(request: Request) {
           : undefined,
       }),
 
-      // Average progress across enrollments
+      // Average progress across enrollments (students only)
       prisma.courseEnrollment.aggregate({
         where: {
           ...programmeFilter,
           status: "ACTIVE",
           enrolledAt: { lte: endDate },
+          user: { role: "STUDENT" },
         },
         _avg: {
           progress: true,
         },
       }),
 
-      // Recent completions
+      // Recent completions (students only)
       prisma.courseEnrollment.findMany({
         where: {
           ...programmeFilter,
           status: "COMPLETED",
           completedAt: dateFilter,
+          user: { role: "STUDENT" },
         },
         select: {
           id: true,
@@ -369,27 +386,31 @@ export async function GET(request: Request) {
         take: 10,
       }),
 
-      // Daily enrollments trend (last 30 days from endDate)
+      // Daily enrollments trend (last 30 days from endDate, students only)
       programmeId
         ? prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
           SELECT 
-            DATE("enrolledAt") as date,
+            DATE(ce."enrolledAt") as date,
             COUNT(*)::bigint as count
-          FROM "CourseEnrollment"
-          WHERE "enrolledAt" >= ${new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)}
-            AND "enrolledAt" <= ${endDate}
-            AND "courseId" = ${programmeId}
-          GROUP BY DATE("enrolledAt")
+          FROM "CourseEnrollment" ce
+          JOIN "User" u ON ce."userId" = u."id"
+          WHERE ce."enrolledAt" >= ${new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)}
+            AND ce."enrolledAt" <= ${endDate}
+            AND ce."courseId" = ${programmeId}
+            AND u."role" = 'STUDENT'
+          GROUP BY DATE(ce."enrolledAt")
           ORDER BY date ASC
         `
         : prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
           SELECT 
-            DATE("enrolledAt") as date,
+            DATE(ce."enrolledAt") as date,
             COUNT(*)::bigint as count
-          FROM "CourseEnrollment"
-          WHERE "enrolledAt" >= ${new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)}
-            AND "enrolledAt" <= ${endDate}
-          GROUP BY DATE("enrolledAt")
+          FROM "CourseEnrollment" ce
+          JOIN "User" u ON ce."userId" = u."id"
+          WHERE ce."enrolledAt" >= ${new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000)}
+            AND ce."enrolledAt" <= ${endDate}
+            AND u."role" = 'STUDENT'
+          GROUP BY DATE(ce."enrolledAt")
           ORDER BY date ASC
         `,
 

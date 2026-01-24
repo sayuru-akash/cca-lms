@@ -39,7 +39,13 @@ export async function GET(
         },
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                user: {
+                  role: "STUDENT",
+                },
+              },
+            },
             modules: true,
           },
         },
@@ -144,7 +150,13 @@ export async function PUT(
       include: {
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                user: {
+                  role: "STUDENT",
+                },
+              },
+            },
             modules: true,
           },
         },

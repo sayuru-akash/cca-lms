@@ -33,7 +33,7 @@ export async function GET() {
       },
     });
 
-    // Get total enrolled students across all courses
+    // Get total enrolled students across all courses (students only)
     const totalStudents = await prisma.courseEnrollment.count({
       where: {
         course: {
@@ -41,6 +41,9 @@ export async function GET() {
         },
         status: {
           in: ["ACTIVE", "COMPLETED"],
+        },
+        user: {
+          role: "STUDENT",
         },
       },
     });
@@ -54,11 +57,14 @@ export async function GET() {
       },
     });
 
-    // Get recent enrollments
+    // Get recent enrollments (students only)
     const recentEnrollments = await prisma.courseEnrollment.findMany({
       where: {
         course: {
           lecturerId,
+        },
+        user: {
+          role: "STUDENT",
         },
       },
       include: {

@@ -82,9 +82,9 @@ export async function GET() {
         },
       }),
 
-      // Total enrollments
+      // Total enrollments (students only)
       prisma.courseEnrollment.count({
-        where: { status: "ACTIVE" },
+        where: { status: "ACTIVE", user: { role: "STUDENT" } },
       }),
     ]);
 
