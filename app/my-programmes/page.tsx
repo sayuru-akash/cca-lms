@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  BookOpen,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  Play,
-} from "lucide-react";
+import { BookOpen, CheckCircle2, Clock, Loader2, Play } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -62,8 +56,6 @@ export default function MyProgrammesPage() {
       setIsLoading(false);
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-terminal-dark">
