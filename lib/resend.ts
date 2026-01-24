@@ -15,41 +15,48 @@ const APP_URL =
   process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
 const SUPPORT_EMAIL = "support@codezela.com";
 
-// Terminal-themed CSS styles
+// Email-client compatible CSS styles (Gmail, Outlook, Apple Mail optimized)
 const getEmailStyles = () => `
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+  <style type="text/css">
     body { 
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace; 
+      font-family: 'Courier New', Consolas, Monaco, monospace !important; 
       line-height: 1.6; 
       color: #16a34a; 
       background-color: #000000;
       margin: 0;
       padding: 0;
+      width: 100% !important;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table { 
+      border-collapse: collapse; 
+      mso-table-lspace: 0pt; 
+      mso-table-rspace: 0pt; 
     }
     .container { 
+      width: 100%; 
       max-width: 600px; 
       margin: 0 auto; 
-      padding: 20px; 
       background-color: #000000;
     }
     .header {
       background-color: #111111;
       border: 1px solid #16a34a;
       padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 4px;
+      text-align: center;
     }
     .header h1 {
       color: #16a34a;
       font-size: 24px;
-      margin-bottom: 10px;
+      margin: 0 0 10px 0;
       font-weight: bold;
+      font-family: 'Courier New', Consolas, Monaco, monospace;
     }
     .header .subtitle {
       color: #10b981;
       font-size: 14px;
-      opacity: 0.8;
+      margin: 0;
     }
     .content {
       background-color: #111111;
@@ -92,17 +99,13 @@ const getEmailStyles = () => `
       display: inline-block; 
       padding: 12px 24px; 
       background-color: #16a34a; 
-      color: #000000; 
+      color: #000000 !important; 
       text-decoration: none; 
-      border-radius: 4px; 
       margin: 16px 0; 
       font-weight: bold;
-      border: 1px solid #10b981;
-      transition: all 0.3s ease;
-    }
-    .button:hover { 
-      background-color: #10b981; 
-      color: #000000;
+      font-family: 'Courier New', Consolas, Monaco, monospace;
+      text-align: center;
+      border: 2px solid #10b981;
     }
     .warning {
       background-color: #1a1a0d;
@@ -299,77 +302,144 @@ export async function sendUserCreatedEmail(
 
   const html = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>Welcome to ${APP_NAME}</title>
+        <!--[if mso]>
+        <style type="text/css">
+          table { border-collapse: collapse; border-spacing: 0; margin: 0; }
+          .container { width: 600px !important; }
+        </style>
+        <![endif]-->
         ${getEmailStyles()}
       </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1><span class="prompt">$</span> Account Created Successfully</h1>
-            <div class="subtitle">Welcome to ${APP_NAME}</div>
-          </div>
-          
-          <div class="ascii-art">${getCodezelaAscii()}</div>
-          
-          <div class="content">
-            <p><span class="prompt">$</span> Hello <strong>${userData.name}</strong>,</p>
-            
-            <p>Your account has been created by <strong>${userData.createdBy}</strong>. ${roleWelcomes[userData.role]}</p>
-            
-            <div class="command">
-              <span class="prompt">$</span> Account Details:
-            </div>
-            
-            <div class="credentials">
-              <div><span class="label">Email:</span> <span class="value">${userData.email}</span></div>
-              <div><span class="label">Role:</span> <span class="value">${userData.role}</span></div>
-              <div><span class="label">Password:</span> <span class="value">${userData.password}</span></div>
-            </div>
-            
-            <div class="warning">
-              <strong>🔐 Important Security Information:</strong><br>
-              • Please log in immediately and change your password<br>
-              • Store your credentials securely<br>
-              • Never share your login details with others
-            </div>
-            
-            <div class="command">
-              <span class="prompt">$</span> Role Permissions: ${roleDescriptions[userData.role]}
-            </div>
-            
-            <p><strong>Quick Start Guide:</strong></p>
-            <ul>
-              <li>Click the login button below or visit: <span class="code">${loginUrl}</span></li>
-              <li>Use your email and the provided password to sign in</li>
-              <li>Update your password in Settings for security</li>
-              <li>Complete your profile information</li>
-              ${userData.role === "STUDENT" ? '<li>Check your assigned courses in "My Programmes"</li>' : ""}
-              ${userData.role === "LECTURER" ? '<li>Start creating your first course in "Programmes"</li>' : ""}
-              ${userData.role === "ADMIN" ? "<li>Explore the admin dashboard and user management</li>" : ""}
-            </ul>
-            
-            <a href="${loginUrl}" class="button">
-              <span class="prompt">$</span> LOGIN TO PLATFORM
-            </a>
-            
-            <p>Direct login link: <a href="${loginUrl}" class="link">${loginUrl}</a></p>
-            <p>Dashboard: <a href="${dashboardUrl}" class="link">${dashboardUrl}</a></p>
-            
-            <div class="danger">
-              <strong>⚠️ Security Notice:</strong> This email contains sensitive login information. Please delete this email after saving your credentials securely.
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p><strong>${APP_NAME}</strong></p>
-            <p>Developed with ❤️ by <a href="https://codezela.com">Codezela Technologies</a></p>
-            <p>Need help? Contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-          </div>
-        </div>
+      <body style="margin: 0; padding: 0; font-family: 'Courier New', Consolas, Monaco, monospace; background-color: #000000; color: #16a34a;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #000000;">
+          <tr>
+            <td align="center" style="padding: 20px;">
+              <!-- Main Container -->
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="container" style="background-color: #000000; max-width: 600px; margin: 0 auto;">
+                
+                <!-- Header -->
+                <tr>
+                  <td style="background-color: #111111; border: 1px solid #16a34a; padding: 20px; text-align: center;">
+                    <h1 style="margin: 0 0 10px 0; color: #16a34a; font-size: 24px; font-weight: bold; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <span style="color: #16a34a; font-weight: bold;">$</span> Account Created Successfully
+                    </h1>
+                    <div style="color: #10b981; font-size: 14px; margin: 0;">Welcome to ${APP_NAME}</div>
+                  </td>
+                </tr>
+                
+                <!-- ASCII Art -->
+                <tr>
+                  <td style="padding: 20px 0; text-align: center;">
+                    <pre style="color: #16a34a; font-size: 10px; line-height: 1.2; margin: 0; font-family: 'Courier New', Consolas, Monaco, monospace;">${getCodezelaAscii()}</pre>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="background-color: #111111; border: 1px solid #16a34a; padding: 20px;">
+                    <p style="margin: 0 0 15px 0; color: #16a34a; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <span style="color: #16a34a; font-weight: bold;">$</span> Hello <strong style="color: #10b981; font-weight: bold;">${userData.name}</strong>,
+                    </p>
+                    
+                    <p style="margin: 0 0 15px 0; color: #16a34a; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      Your account has been created by <strong style="color: #10b981; font-weight: bold;">${userData.createdBy}</strong>. ${roleWelcomes[userData.role]}
+                    </p>
+                    
+                    <!-- Command Section -->
+                    <div style="color: #10b981; background-color: #1a1a1a; padding: 8px 12px; border-left: 3px solid #16a34a; margin: 12px 0;">
+                      <span style="color: #16a34a; font-weight: bold;">$</span> Account Details:
+                    </div>
+                    
+                    <!-- Credentials Table -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #1a1a1a; border: 1px solid #16a34a; margin: 15px 0;">
+                      <tr>
+                        <td style="padding: 15px;">
+                          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                            <tr>
+                              <td style="color: #16a34a; font-weight: bold; padding: 5px 0; width: 100px; font-family: 'Courier New', Consolas, Monaco, monospace;">Email:</td>
+                              <td style="color: #10b981; font-weight: bold; padding: 5px 0; font-family: 'Courier New', Consolas, Monaco, monospace;">${userData.email}</td>
+                            </tr>
+                            <tr>
+                              <td style="color: #16a34a; font-weight: bold; padding: 5px 0; width: 100px; font-family: 'Courier New', Consolas, Monaco, monospace;">Role:</td>
+                              <td style="color: #10b981; font-weight: bold; padding: 5px 0; font-family: 'Courier New', Consolas, Monaco, monospace;">${userData.role}</td>
+                            </tr>
+                            <tr>
+                              <td style="color: #16a34a; font-weight: bold; padding: 5px 0; width: 100px; font-family: 'Courier New', Consolas, Monaco, monospace;">Password:</td>
+                              <td style="color: #10b981; font-weight: bold; padding: 5px 0; font-family: 'Courier New', Consolas, Monaco, monospace; word-break: break-all;">${userData.password}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- Security Warning -->
+                    <div style="background-color: #1a1a0d; border: 1px solid #eab308; color: #facc15; padding: 12px; margin: 12px 0; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <strong>🔐 Important Security Information:</strong><br>
+                      • Please log in immediately and change your password<br>
+                      • Store your credentials securely<br>
+                      • Never share your login details with others
+                    </div>
+                    
+                    <!-- Role Permissions -->
+                    <div style="color: #10b981; background-color: #1a1a1a; padding: 8px 12px; border-left: 3px solid #16a34a; margin: 12px 0;">
+                      <span style="color: #16a34a; font-weight: bold;">$</span> Role Permissions: ${roleDescriptions[userData.role]}
+                    </div>
+                    
+                    <!-- Quick Start Guide -->
+                    <p style="margin: 15px 0 10px 0; color: #16a34a; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <strong style="color: #10b981; font-weight: bold;">Quick Start Guide:</strong>
+                    </p>
+                    <ul style="margin: 0 0 15px 20px; padding: 0; color: #10b981; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <li style="margin-bottom: 8px;">Click the login button below or visit: <span style="background-color: #1a1a1a; color: #16a34a; padding: 2px 6px; border: 1px solid #333; font-family: 'Courier New', Consolas, Monaco, monospace;">${loginUrl}</span></li>
+                      <li style="margin-bottom: 8px;">Use your email and the provided password to sign in</li>
+                      <li style="margin-bottom: 8px;">Update your password in Settings for security</li>
+                      <li style="margin-bottom: 8px;">Complete your profile information</li>
+                      ${userData.role === "STUDENT" ? '<li style="margin-bottom: 8px;">Check your assigned courses in "My Programmes"</li>' : ""}
+                      ${userData.role === "LECTURER" ? '<li style="margin-bottom: 8px;">Start creating your first course in "Programmes"</li>' : ""}
+                      ${userData.role === "ADMIN" ? '<li style="margin-bottom: 8px;">Explore the admin dashboard and user management</li>' : ""}
+                    </ul>
+                    
+                    <!-- Login Button -->
+                    <div style="text-align: center; margin: 20px 0;">
+                      <a href="${loginUrl}" style="display: inline-block; padding: 12px 24px; background-color: #16a34a; color: #000000 !important; text-decoration: none; font-weight: bold; font-family: 'Courier New', Consolas, Monaco, monospace; border: 2px solid #10b981;">
+                        <span style="color: #000000; font-weight: bold;">$</span> LOGIN TO PLATFORM
+                      </a>
+                    </div>
+                    
+                    <!-- Links -->
+                    <p style="margin: 15px 0; color: #16a34a; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      Direct login link: <a href="${loginUrl}" style="color: #10b981; text-decoration: underline; word-break: break-all;">${loginUrl}</a>
+                    </p>
+                    <p style="margin: 15px 0; color: #16a34a; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      Dashboard: <a href="${dashboardUrl}" style="color: #10b981; text-decoration: underline; word-break: break-all;">${dashboardUrl}</a>
+                    </p>
+                    
+                    <!-- Security Notice -->
+                    <div style="background-color: #1a0d0d; border: 1px solid #dc2626; color: #ef4444; padding: 12px; margin: 12px 0; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                      <strong>⚠️ Security Notice:</strong> This email contains sensitive login information. Please delete this email after saving your credentials securely.
+                    </div>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 30px 20px 20px 20px; border-top: 1px solid #16a34a; font-size: 12px; color: #10b981; text-align: center; font-family: 'Courier New', Consolas, Monaco, monospace;">
+                    <p style="margin: 0 0 10px 0;"><strong style="color: #10b981;">${APP_NAME}</strong></p>
+                    <p style="margin: 0 0 10px 0;">Developed with ❤️ by <a href="https://codezela.com" style="color: #16a34a; text-decoration: none;">Codezela Technologies</a></p>
+                    <p style="margin: 0;">Need help? Contact us at <a href="mailto:${SUPPORT_EMAIL}" style="color: #16a34a; text-decoration: none;">${SUPPORT_EMAIL}</a></p>
+                  </td>
+                </tr>
+                
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
     </html>
   `;
