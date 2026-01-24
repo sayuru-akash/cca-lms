@@ -3,7 +3,7 @@ import { hash } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { auditActions } from "@/lib/audit";
-
+import { sendUserCreatedEmail } from "@/lib/resend";
 
 // GET /api/admin/users - List all users with filters
 export async function GET(request: Request) {
@@ -176,9 +176,28 @@ export async function POST(request: Request) {
       user.role,
     );
 
+    // Send welcome email with credentials
+    const emailResult = await sendUserCreatedEmail(
+      user.email,
+      {
+        name: user.name || user.email,
+        email: user.email,
+        role: user.role as "ADMIN" | "LECTURER" | "STUDENT",
+        password: password,
+        createdBy: session.user.name || session.user.email || "Administrator",
+      },
+      user.id,
+    );
+
+    if (!emailResult.success) {
+      console.warn("Failed to send welcome email:", emailResult.error);
+      // Continue with user creation even if email fails
+    }
+
     // Return user and generated password (if generated)
     return NextResponse.json({
       user,
+      emailSent: emailResult.success,
       ...(generatePassword && { generatedPassword: password }),
     });
   } catch (error) {

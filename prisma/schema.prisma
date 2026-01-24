@@ -553,6 +553,10 @@ enum AuditAction {
   FILE_DOWNLOADED
   FILE_DELETED
 
+  // Email actions
+  EMAIL_SENT
+  EMAIL_FAILED
+
   // System actions
   SYSTEM_ERROR
   SYSTEM_WARNING

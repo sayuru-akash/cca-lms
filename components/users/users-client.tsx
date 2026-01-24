@@ -106,6 +106,7 @@ export default function UsersClient() {
   const [createdUserData, setCreatedUserData] = useState<{
     email: string;
     password: string;
+    emailSent?: boolean;
   } | null>(null);
   const [createForm, setCreateForm] = useState({
     name: "",
@@ -203,6 +204,7 @@ export default function UsersClient() {
       setCreatedUserData({
         email: data.user.email,
         password: data.generatedPassword,
+        emailSent: data.emailSent,
       });
 
       setCreateForm({ name: "", email: "", role: activeTab });
@@ -788,6 +790,27 @@ export default function UsersClient() {
                   </span>
                 </div>
 
+                {/* Email Status */}
+                <div
+                  className={`flex items-center gap-2 text-sm p-2 rounded ${
+                    createdUserData.emailSent
+                      ? "bg-terminal-green/10 text-terminal-green border border-terminal-green/20"
+                      : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+                  }`}
+                >
+                  {createdUserData.emailSent ? (
+                    <>
+                      <Mail className="h-4 w-4" /> Welcome email sent
+                      successfully to user
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4" /> Email sending failed - please
+                      share credentials manually
+                    </>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <div>
                     <Label className="text-xs text-terminal-text-muted">
@@ -808,8 +831,9 @@ export default function UsersClient() {
                 </div>
 
                 <p className="text-xs text-terminal-text-muted italic">
-                  ⚠️ Save these credentials now. The password won&apos;t be
-                  shown again.
+                  {createdUserData.emailSent
+                    ? "✉️ User has been notified via email with login instructions."
+                    : "⚠️ Save these credentials now. The password won't be shown again."}
                 </p>
               </div>
 
