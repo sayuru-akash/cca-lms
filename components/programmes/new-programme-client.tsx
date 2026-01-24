@@ -28,17 +28,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-interface Lecturer {
-  id: string;
-  name: string | null;
-  email: string;
-}
-
 export default function NewProgrammeClient() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingLecturers, setIsFetchingLecturers] = useState(true);
-  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
@@ -46,40 +38,17 @@ export default function NewProgrammeClient() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    lecturerId: "",
     status: "DRAFT" as "DRAFT" | "PUBLISHED",
   });
 
   // Validation errors
   const [errors, setErrors] = useState({
     title: "",
-    lecturerId: "",
   });
-
-  useEffect(() => {
-    fetchLecturers();
-  }, []);
-
-  const fetchLecturers = async () => {
-    try {
-      setIsFetchingLecturers(true);
-      const response = await fetch("/api/admin/lecturers");
-      if (!response.ok) throw new Error("Failed to fetch lecturers");
-
-      const data = await response.json();
-      setLecturers(data.lecturers);
-    } catch (error) {
-      console.error("Error fetching lecturers:", error);
-      setError("Failed to load lecturers. Please refresh the page.");
-    } finally {
-      setIsFetchingLecturers(false);
-    }
-  };
 
   const validateForm = (): boolean => {
     const newErrors = {
       title: "",
-      lecturerId: "",
     };
 
     if (!formData.title.trim()) {
@@ -90,12 +59,8 @@ export default function NewProgrammeClient() {
       newErrors.title = "Title must not exceed 200 characters";
     }
 
-    if (!formData.lecturerId) {
-      newErrors.lecturerId = "Please select a lecturer";
-    }
-
     setErrors(newErrors);
-    return !newErrors.title && !newErrors.lecturerId;
+    return !newErrors.title;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,16 +108,7 @@ export default function NewProgrammeClient() {
     }
   };
 
-  if (isFetchingLecturers) {
-    return (
-      <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
-        <div className="flex items-center gap-3 text-terminal-green">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="font-mono text-lg">Loading...</span>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-terminal-dark">
@@ -257,61 +213,7 @@ export default function NewProgrammeClient() {
                 </p>
               </div>
 
-              {/* Lecturer Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="lecturer" className="font-mono">
-                  Assign Lecturer *
-                </Label>
-                {lecturers.length === 0 ? (
-                  <div className="rounded-md border border-yellow-500/20 bg-yellow-500/10 p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
-                      <div>
-                        <h4 className="font-mono text-sm font-semibold text-yellow-500 mb-1">
-                          No Lecturers Available
-                        </h4>
-                        <p className="text-sm text-terminal-text-muted">
-                          You need to create lecturer accounts before creating
-                          programmes. Please add lecturers first.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Select
-                      value={formData.lecturerId}
-                      onValueChange={(value) =>
-                        handleInputChange("lecturerId", value)
-                      }
-                      disabled={isLoading || success}
-                    >
-                      <SelectTrigger
-                        className={
-                          errors.lecturerId ? "border-destructive" : ""
-                        }
-                      >
-                        <SelectValue placeholder="Select a lecturer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {lecturers.map((lecturer) => (
-                          <SelectItem key={lecturer.id} value={lecturer.id}>
-                            {lecturer.name || lecturer.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.lecturerId && (
-                      <p className="text-sm text-destructive font-mono">
-                        {errors.lecturerId}
-                      </p>
-                    )}
-                    <p className="text-xs text-terminal-text-muted font-mono">
-                      The lecturer will be able to manage modules and content
-                    </p>
-                  </>
-                )}
-              </div>
+
 
               {/* Status */}
               <div className="space-y-2">
@@ -342,7 +244,7 @@ export default function NewProgrammeClient() {
               <div className="flex items-center gap-3 pt-4 border-t">
                 <Button
                   type="submit"
-                  disabled={isLoading || success || lecturers.length === 0}
+                  disabled={isLoading || success}
                   className="min-w-[120px]"
                 >
                   {isLoading ? (

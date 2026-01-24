@@ -100,23 +100,25 @@ export async function POST(request: NextRequest) {
     const { title, description, thumbnail, lecturerId, status } = body;
 
     // Validate required fields
-    if (!title || !lecturerId) {
+    if (!title) {
       return NextResponse.json(
-        { error: "Title and Lecturer are required" },
+        { error: "Title is required" },
         { status: 400 },
       );
     }
 
-    // Verify lecturer exists and has correct role
-    const lecturer = await prisma.user.findUnique({
-      where: { id: lecturerId },
-    });
+    // Verify lecturer exists if provided
+    if (lecturerId) {
+      const lecturer = await prisma.user.findUnique({
+        where: { id: lecturerId },
+      });
 
-    if (!lecturer || lecturer.role !== "LECTURER") {
-      return NextResponse.json(
-        { error: "Invalid lecturer selected" },
-        { status: 400 },
-      );
+      if (!lecturer || lecturer.role !== "LECTURER") {
+        return NextResponse.json(
+          { error: "Invalid lecturer selected" },
+          { status: 400 },
+        );
+      }
     }
 
     // Create programme
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
         title,
         description: description || null,
         thumbnail: thumbnail || null,
-        lecturerId,
+        lecturerId: lecturerId || null,
         status: status || "DRAFT",
       },
       include: {
