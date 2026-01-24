@@ -49,10 +49,26 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
     [title],
   );
 
+  const onDropRejected = useCallback((fileRejections: any[]) => {
+    if (fileRejections.length > 0) {
+      const rejection = fileRejections[0];
+      const error = rejection.errors[0];
+
+      if (error.code === "file-too-large") {
+        toast.error("File is too large. Maximum file size is 20MB.");
+      } else if (error.code === "file-invalid-type") {
+        toast.error("Invalid file type. Please select a valid file.");
+      } else {
+        toast.error(error.message || "File upload rejected.");
+      }
+    }
+  }, []);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     multiple: false,
-    maxSize: 500 * 1024 * 1024, // 500MB
+    maxSize: 20 * 1024 * 1024, // 20MB
   });
 
   const removeFile = () => {
@@ -180,7 +196,7 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
                   : "Drag & drop a file here, or click to select"}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Maximum file size: 500MB
+                Maximum file size: 20MB
               </p>
             </div>
           ) : (

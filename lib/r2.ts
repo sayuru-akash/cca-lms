@@ -209,11 +209,11 @@ export function validateFile(
 export const FILE_VALIDATIONS = {
   image: {
     allowedTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-    maxSizeMB: 5,
+    maxSizeMB: 20,
   },
   video: {
     allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
-    maxSizeMB: 500,
+    maxSizeMB: 20,
   },
   document: {
     allowedTypes: [
@@ -225,7 +225,7 @@ export const FILE_VALIDATIONS = {
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ],
-    maxSizeMB: 25,
+    maxSizeMB: 20,
   },
   submission: {
     allowedTypes: [
@@ -234,6 +234,6 @@ export const FILE_VALIDATIONS = {
       "image/jpeg",
       "image/png",
     ],
-    maxSizeMB: 50,
+    maxSizeMB: 20,
   },
 } as const;
