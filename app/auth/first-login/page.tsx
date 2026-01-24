@@ -108,7 +108,7 @@ export default function FirstLoginPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-3 rounded-lg border border-destructive bg-destructive/10 text-destructive text-sm flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                   <span>{error}</span>
                 </div>
               )}

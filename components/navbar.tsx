@@ -25,6 +25,7 @@ const adminNavItems = [
   { href: "/programmes", label: "Programmes", icon: BookOpen },
   { href: "/users", label: "Users", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const lecturerNavItems = [
@@ -32,12 +33,14 @@ const lecturerNavItems = [
   { href: "/programmes", label: "My Programmes", icon: BookOpen },
   { href: "/students", label: "Students", icon: GraduationCap },
   { href: "/resources", label: "Resources", icon: FolderOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 const studentNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/courses", label: "My Courses", icon: BookOpen },
+  { href: "/my-programmes", label: "My Programmes", icon: BookOpen },
   { href: "/resources", label: "Resources", icon: FolderOpen },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Navbar() {

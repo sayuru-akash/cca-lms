@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   BookOpen,
   Users,
@@ -11,6 +12,15 @@ import {
   GraduationCap,
   Loader2,
   AlertCircle,
+  UserPlus,
+  FileText,
+  Settings,
+  Shield,
+  BarChart3,
+  CheckCircle2,
+  XCircle,
+  Database,
+  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -39,6 +49,8 @@ interface DashboardStats {
   totalEnrollments: number;
   activeUsersToday: number;
   activeUsersWeek: number;
+  databaseStatus?: "connected" | "disconnected" | "checking";
+  systemUptime?: number;
 }
 
 interface RecentActivity {
@@ -60,9 +72,27 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [databaseStatus, setDatabaseStatus] = useState<
+    "connected" | "disconnected" | "checking"
+  >("checking");
+  const [uptime, setUptime] = useState<number>(0);
 
   useEffect(() => {
     fetchDashboardData();
+    checkDatabaseStatus();
+
+    // Update uptime every second
+    const uptimeInterval = setInterval(() => {
+      setUptime((prev) => prev + 1);
+    }, 1000);
+
+    // Refresh stats every 30 seconds
+    const statsInterval = setInterval(fetchDashboardData, 30000);
+
+    return () => {
+      clearInterval(uptimeInterval);
+      clearInterval(statsInterval);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -79,11 +109,29 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       const data = await response.json();
       setStats(data.stats);
       setRecentActivity(data.recentActivity);
+      setDatabaseStatus("connected");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
+      setDatabaseStatus("disconnected");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const checkDatabaseStatus = async () => {
+    try {
+      const response = await fetch("/api/admin/dashboard-stats");
+      setDatabaseStatus(response.ok ? "connected" : "disconnected");
+    } catch {
+      setDatabaseStatus("disconnected");
+    }
+  };
+
+  const formatUptime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours}h ${minutes}m ${secs}s`;
   };
 
   // Format action text for display
@@ -177,9 +225,42 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
   ];
 
   const quickActions = [
-    { label: "New Programme", icon: BookOpen, href: "/programmes/new" },
-    { label: "Add Student", icon: Users, href: "/students/new" },
-    { label: "View Audit Logs", icon: Activity, href: "/audit" },
+    {
+      label: "Manage Users",
+      icon: Users,
+      href: "/users",
+      description: "View, add, or edit users",
+    },
+    {
+      label: "Manage Programmes",
+      icon: BookOpen,
+      href: "/programmes",
+      description: "Create and manage programmes",
+    },
+    {
+      label: "Add Lecturer",
+      icon: UserPlus,
+      href: "/users?tab=lecturer&action=add",
+      description: "Register new lecturer",
+    },
+    {
+      label: "View Reports",
+      icon: BarChart3,
+      href: "/reports",
+      description: "Analytics and insights",
+    },
+    {
+      label: "Audit Logs",
+      icon: Shield,
+      href: "/activity-logs",
+      description: "System activity monitoring",
+    },
+    {
+      label: "System Settings",
+      icon: Settings,
+      href: "/settings",
+      description: "Configure system preferences",
+    },
   ];
 
   return (
@@ -280,10 +361,12 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
                       </div>
                     ))}
                   </div>
-                  <Button variant="outline" className="w-full mt-4 gap-2">
-                    View All Activity
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+                  <Link href="/activity-logs">
+                    <Button variant="outline" className="w-full mt-4 gap-2">
+                      View All Activity
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
                 </>
               )}
             </CardContent>
@@ -302,14 +385,25 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
               {quickActions.map((action, index) => {
                 const Icon = action.icon;
                 return (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    className="w-full justify-start gap-3 h-auto py-4"
-                  >
-                    <Icon className="h-5 w-5 text-terminal-green" />
-                    <span className="font-mono">{action.label}</span>
-                  </Button>
+                  <Link key={index} href={action.href}>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-3 h-auto py-4 hover:bg-terminal-green/10 hover:border-terminal-green transition-all group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <Icon className="h-5 w-5 text-terminal-green group-hover:scale-110 transition-transform" />
+                        <div className="text-left">
+                          <div className="font-mono font-semibold text-terminal-text">
+                            {action.label}
+                          </div>
+                          <div className="font-mono text-xs text-terminal-text-muted">
+                            {action.description}
+                          </div>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-terminal-text-muted group-hover:text-terminal-green group-hover:translate-x-1 transition-all" />
+                    </Button>
+                  </Link>
                 );
               })}
             </CardContent>
@@ -320,28 +414,160 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
         <Card className="mt-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Terminal className="h-5 w-5" />
+              <Zap className="h-5 w-5 text-terminal-green" />
               System Status
             </CardTitle>
+            <CardDescription>
+              Real-time system health monitoring
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md bg-terminal-darker/80 border border-terminal-green/20 p-4 font-mono text-sm space-y-1">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Status Indicators */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center gap-2">
+                    {databaseStatus === "connected" ? (
+                      <CheckCircle2 className="h-5 w-5 text-terminal-green animate-pulse" />
+                    ) : databaseStatus === "disconnected" ? (
+                      <XCircle className="h-5 w-5 text-red-400 animate-pulse" />
+                    ) : (
+                      <Loader2 className="h-5 w-5 text-yellow-400 animate-spin" />
+                    )}
+                    <span className="font-mono text-sm text-terminal-text">
+                      Database
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-terminal-text-muted capitalize">
+                    {databaseStatus}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-terminal-green animate-pulse" />
+                    <span className="font-mono text-sm text-terminal-text">
+                      API Service
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-terminal-text-muted">
+                    Operational
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-blue-400" />
+                    <span className="font-mono text-sm text-terminal-text">
+                      Session Uptime
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-terminal-text-muted">
+                    {formatUptime(uptime)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Metrics */}
+              <div className="space-y-3">
+                <div className="p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-xs text-terminal-text-muted">
+                      Active Users (24h)
+                    </span>
+                    <span className="font-mono text-sm text-terminal-green font-bold">
+                      {stats?.activeUsersToday || 0}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-terminal-darker rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-terminal-green transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          ((stats?.activeUsersToday || 0) /
+                            (stats?.totalStudents || 1)) *
+                            100,
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-xs text-terminal-text-muted">
+                      Active Users (7d)
+                    </span>
+                    <span className="font-mono text-sm text-blue-400 font-bold">
+                      {stats?.activeUsersWeek || 0}
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-terminal-darker rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-400 transition-all duration-500"
+                      style={{
+                        width: `${Math.min(
+                          ((stats?.activeUsersWeek || 0) /
+                            (stats?.totalStudents || 1)) *
+                            100,
+                          100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-md bg-terminal-darker/80 border border-terminal-green/20">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-xs text-terminal-text-muted">
+                      System Time
+                    </span>
+                    <span className="font-mono text-xs text-terminal-text-muted">
+                      {new Date().toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Terminal Output */}
+            <div className="mt-4 rounded-md bg-terminal-darker/80 border border-terminal-green/20 p-4 font-mono text-xs space-y-1">
               <p className="text-terminal-text-muted">
-                <span className="text-terminal-green">$</span> [
-                {new Date().toISOString().split("T")[0]}{" "}
-                {new Date().toTimeString().split(" ")[0]}] System: Operational
+                <span className="text-terminal-green">$</span> system --status
               </p>
               <p className="text-terminal-text-muted">
-                <span className="text-terminal-green">$</span> Database:
-                Connected
+                <span className="text-terminal-green">→</span> Database:{" "}
+                <span
+                  className={`font-bold ${
+                    databaseStatus === "connected"
+                      ? "text-terminal-green"
+                      : "text-red-400"
+                  }`}
+                >
+                  {databaseStatus.toUpperCase()}
+                </span>
               </p>
               <p className="text-terminal-text-muted">
-                <span className="text-terminal-green">$</span> Active Users
-                Today: {stats?.activeUsersToday || 0}
+                <span className="text-terminal-green">→</span> Total Users:{" "}
+                <span className="text-terminal-green font-bold">
+                  {(stats?.totalStudents || 0) +
+                    (stats?.totalLecturers || 0) +
+                    (stats?.totalAdmins || 0)}
+                </span>
               </p>
               <p className="text-terminal-text-muted">
-                <span className="text-terminal-green">$</span> Active Users (7
-                days): {stats?.activeUsersWeek || 0}
+                <span className="text-terminal-green">→</span> Total Programmes:{" "}
+                <span className="text-terminal-green font-bold">
+                  {stats?.totalProgrammes || 0}
+                </span>
+              </p>
+              <p className="text-terminal-text-muted">
+                <span className="text-terminal-green">→</span> Total
+                Enrollments:{" "}
+                <span className="text-terminal-green font-bold">
+                  {stats?.totalEnrollments || 0}
+                </span>
               </p>
             </div>
           </CardContent>
