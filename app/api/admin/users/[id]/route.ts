@@ -92,7 +92,10 @@ export async function PUT(
       );
     }
 
-    if (status && !["ACTIVE", "DISABLED"].includes(status)) {
+    if (
+      status &&
+      !["ACTIVE", "INVITED", "SUSPENDED", "DELETED"].includes(status)
+    ) {
       return NextResponse.json(
         { error: "Valid status is required" },
         { status: 400 },

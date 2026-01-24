@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     }
 
     if (status) {
-      where.status = status.toUpperCase();
+      where.status = status;
     }
 
     // Fetch users and total count
