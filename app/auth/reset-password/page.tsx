@@ -40,9 +40,6 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  const [error, setError] = useState("");
-  const [resetSuccess, setResetSuccess] = useState(false);
-
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

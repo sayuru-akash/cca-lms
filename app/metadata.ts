@@ -21,7 +21,6 @@ export const metadata = {
   creator: "Codezela",
   publisher: "Codezela",
   applicationName: "Codezela Career Accelerator LMS",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   robots: "noindex, nofollow",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f0f4f0" },
@@ -34,4 +33,10 @@ export const metadata = {
     description:
       "Empowering future tech leaders with comprehensive programming courses and career development.",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
