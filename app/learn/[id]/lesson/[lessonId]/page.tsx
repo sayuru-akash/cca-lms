@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  ExternalLink,
+  Play,
 } from "lucide-react";
 import {
   Card,
@@ -25,8 +27,15 @@ import { Badge } from "@/components/ui/badge";
 interface Resource {
   id: string;
   title: string;
-  url: string;
-  type: string;
+  description?: string;
+  type: "FILE" | "EXTERNAL_LINK" | "EMBEDDED" | "TEXT_NOTE";
+  url?: string;
+  embedCode?: string;
+  textContent?: string;
+  fileKey?: string;
+  fileName?: string;
+  mimeType?: string;
+  downloadable?: boolean;
 }
 
 interface LessonData {
@@ -46,6 +55,216 @@ interface LessonData {
     moduleTitle: string;
   };
 }
+
+// Helper function to detect and render video from YouTube, Vimeo, or direct URL
+const renderVideoPlayer = (
+  videoUrl: string,
+  onEnded?: () => void,
+): React.ReactElement => {
+  // YouTube detection
+  const youtubeMatch = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
+  );
+  if (youtubeMatch) {
+    const videoId = youtubeMatch[1];
+    return (
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}?rel=0`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="w-full h-full"
+      />
+    );
+  }
+
+  // Vimeo detection
+  const vimeoMatch = videoUrl.match(/vimeo\.com\/(?:.*\/)?(\d+)/);
+  if (vimeoMatch) {
+    const videoId = vimeoMatch[1];
+    return (
+      <iframe
+        src={`https://player.vimeo.com/video/${videoId}?title=0&byline=0&portrait=0`}
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+        className="w-full h-full"
+      />
+    );
+  }
+
+  // Default HTML5 video player for direct URLs
+  return (
+    <video
+      src={videoUrl}
+      controls
+      className="w-full h-full bg-black"
+      onEnded={onEnded}
+      controlsList="nodownload"
+    >
+      Your browser does not support the video tag.
+    </video>
+  );
+};
+
+// Helper function to render different resource types
+const renderResource = (resource: Resource): React.ReactElement => {
+  switch (resource.type) {
+    case "TEXT_NOTE":
+      return (
+        <Card key={resource.id} className="border-terminal-green/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-terminal-green" />
+              {resource.title}
+            </CardTitle>
+            {resource.description && (
+              <CardDescription>{resource.description}</CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div
+              className="prose prose-invert prose-terminal max-w-none"
+              dangerouslySetInnerHTML={{
+                __html: resource.textContent || "",
+              }}
+            />
+          </CardContent>
+        </Card>
+      );
+
+    case "EMBEDDED":
+      // Handle YouTube, Vimeo, or custom embed code
+      if (resource.embedCode) {
+        return (
+          <Card key={resource.id} className="border-terminal-green/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5 text-terminal-green" />
+                {resource.title}
+              </CardTitle>
+              {resource.description && (
+                <CardDescription>{resource.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="aspect-video bg-terminal-darker rounded-b-lg overflow-hidden">
+                <div
+                  dangerouslySetInnerHTML={{ __html: resource.embedCode }}
+                  className="w-full h-full"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      // If embedCode is empty but URL exists, try to render as embedded video
+      if (resource.url) {
+        return (
+          <Card key={resource.id} className="border-terminal-green/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Play className="h-5 w-5 text-terminal-green" />
+                {resource.title}
+              </CardTitle>
+              {resource.description && (
+                <CardDescription>{resource.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="aspect-video bg-terminal-darker rounded-b-lg overflow-hidden">
+                {renderVideoPlayer(resource.url)}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      }
+      return <></>;
+
+    case "EXTERNAL_LINK":
+      return (
+        <Card
+          key={resource.id}
+          className="border-terminal-green/20 hover:border-terminal-green/40 transition-colors cursor-pointer"
+          onClick={() => window.open(resource.url, "_blank")}
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ExternalLink className="h-5 w-5 text-terminal-green" />
+                <div>
+                  <h3 className="font-mono font-semibold text-terminal-text">
+                    {resource.title}
+                  </h3>
+                  {resource.description && (
+                    <p className="text-sm font-mono text-terminal-text-muted mt-1">
+                      {resource.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Badge variant="outline" className="font-mono text-xs shrink-0">
+                External Link
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      );
+
+    case "FILE":
+    default:
+      return (
+        <Card
+          key={resource.id}
+          className="border-terminal-green/20 hover:border-terminal-green/40 transition-colors"
+        >
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="h-5 w-5 text-terminal-green" />
+                <div>
+                  <h3 className="font-mono font-semibold text-terminal-text">
+                    {resource.title}
+                  </h3>
+                  {resource.description && (
+                    <p className="text-sm font-mono text-terminal-text-muted mt-1">
+                      {resource.description}
+                    </p>
+                  )}
+                  {resource.fileName && (
+                    <p className="text-xs font-mono text-terminal-text-muted mt-1">
+                      {resource.fileName}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {resource.mimeType && (
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {resource.mimeType.split("/")[1]?.toUpperCase() || "FILE"}
+                  </Badge>
+                )}
+                {resource.downloadable !== false && resource.url && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (resource.url) {
+                        window.open(resource.url, "_blank");
+                      }
+                    }}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+  }
+};
 
 export default function LessonPage({
   params,
@@ -184,60 +403,22 @@ export default function LessonPage({
           )}
         </div>
 
-        {/* Video Player */}
+        {/* Video Player - Smart renderer for YouTube, Vimeo, or direct video */}
         {lesson.videoUrl && (
           <Card className="mb-6">
             <CardContent className="p-0">
               <div className="aspect-video bg-terminal-darker rounded-lg overflow-hidden">
-                <video
-                  src={lesson.videoUrl}
-                  controls
-                  className="w-full h-full"
-                  onEnded={markComplete}
-                >
-                  Your browser does not support the video tag.
-                </video>
+                {renderVideoPlayer(lesson.videoUrl, markComplete)}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Resources */}
+        {/* Resources - Render each type appropriately */}
         {lesson.resources.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Resources
-              </CardTitle>
-              <CardDescription>
-                Additional materials for this lesson
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {lesson.resources.map((resource) => (
-                  <a
-                    key={resource.id}
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 rounded-lg border border-terminal-green/20 bg-terminal-darker/50 hover:bg-terminal-green/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-terminal-green" />
-                      <span className="font-mono text-sm">
-                        {resource.title}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {resource.type}
-                    </Badge>
-                  </a>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-6 mb-6">
+            {lesson.resources.map((resource) => renderResource(resource))}
+          </div>
         )}
 
         {/* Mark Complete */}

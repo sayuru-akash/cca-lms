@@ -258,3 +258,136 @@ body {
     @apply bg-background text-foreground;
   }
 }
+/* Prose styles for lesson text content */
+.prose-terminal {
+  color: var(--terminal-text);
+  line-height: 1.75;
+}
+
+.prose-terminal h1,
+.prose-terminal h2,
+.prose-terminal h3,
+.prose-terminal h4,
+.prose-terminal h5,
+.prose-terminal h6 {
+  color: var(--terminal-green);
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  line-height: 1.3;
+}
+
+.prose-terminal h1 {
+  font-size: 2em;
+}
+
+.prose-terminal h2 {
+  font-size: 1.5em;
+}
+
+.prose-terminal h3 {
+  font-size: 1.25em;
+}
+
+.prose-terminal p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.prose-terminal a {
+  color: var(--terminal-green);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.prose-terminal a:hover {
+  color: var(--terminal-green-light);
+}
+
+.prose-terminal strong {
+  color: var(--terminal-text);
+  font-weight: 600;
+}
+
+.prose-terminal code {
+  background-color: var(--terminal-darker);
+  border: 1px solid var(--terminal-border);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.prose-terminal pre {
+  background-color: var(--terminal-darker);
+  border: 1px solid var(--terminal-border);
+  padding: 1em;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose-terminal pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose-terminal ul,
+.prose-terminal ol {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.prose-terminal li {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose-terminal blockquote {
+  border-left: 4px solid var(--terminal-green);
+  padding-left: 1em;
+  margin-left: 0;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+  font-style: italic;
+  color: var(--terminal-text-muted);
+}
+
+.prose-terminal img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose-terminal hr {
+  border: none;
+  border-top: 1px solid var(--terminal-border);
+  margin-top: 2em;
+  margin-bottom: 2em;
+}
+
+.prose-terminal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose-terminal th,
+.prose-terminal td {
+  border: 1px solid var(--terminal-border);
+  padding: 0.75em;
+  text-align: left;
+}
+
+.prose-terminal th {
+  background-color: var(--terminal-darker);
+  font-weight: 600;
+  color: var(--terminal-green);
+}

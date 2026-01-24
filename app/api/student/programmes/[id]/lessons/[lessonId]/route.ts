@@ -82,8 +82,15 @@ export async function GET(
         return {
           id: r.id,
           title: r.title,
-          url,
+          description: r.description,
           type: r.type,
+          url: url || undefined,
+          embedCode: r.embedCode || undefined,
+          textContent: r.textContent || undefined,
+          fileKey: r.fileKey || undefined,
+          fileName: r.fileName || undefined,
+          mimeType: r.mimeType || undefined,
+          downloadable: r.downloadable,
         };
       }),
     );
