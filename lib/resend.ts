@@ -12,8 +12,8 @@ function getResendClient() {
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@codezela.com";
 const APP_NAME = "Codezela Career Accelerator - LMS";
 const APP_URL =
-  process.env.APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
-const SUPPORT_EMAIL = "support@codezela.com";
+  process.env.APP_URL || "https://lms.cca.it.com"; // Default to production URL
+const SUPPORT_EMAIL = "ca@codezela.com";
 
 // Email-client compatible CSS styles (Gmail, Outlook, Apple Mail optimized)
 const getEmailStyles = () => `
