@@ -61,15 +61,17 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch lecturer separately
-    const lecturer = await prisma.user.findUnique({
-      where: { id: programme.lecturerId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
-    });
+    // Fetch lecturer separately if assigned
+    const lecturer = programme.lecturerId
+      ? await prisma.user.findUnique({
+          where: { id: programme.lecturerId },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        })
+      : null;
 
     return NextResponse.json({
       programme: {

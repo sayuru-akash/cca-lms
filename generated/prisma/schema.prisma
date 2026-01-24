@@ -11,9 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
+  provider = "postgresql"
 }
 
 // ============================================================================
@@ -122,7 +120,7 @@ model Course {
   description String?      @db.Text
   thumbnail   String? // R2 file key
   status      CourseStatus @default(DRAFT)
-  lecturerId  String
+  lecturerId  String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 

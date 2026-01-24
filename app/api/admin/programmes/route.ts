@@ -133,14 +133,6 @@ export async function POST(request: NextRequest) {
         lecturerId: lecturerId || null,
         status: status || "DRAFT",
       },
-      include: {
-        _count: {
-          select: {
-            enrollments: true,
-            modules: true,
-          },
-        },
-      },
     });
 
     // Audit log
