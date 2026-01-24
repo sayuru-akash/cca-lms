@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import ProgrammeContentClient from "@/components/programmes/programme-content-client";
 
 export const runtime = "nodejs";
@@ -15,12 +16,21 @@ export default async function ProgrammeDetailPage({
     redirect("/auth/login");
   }
 
-  // Only admins can manage programme content
-  if (session.user.role !== "ADMIN") {
+  const { id } = await params;
+
+  // Admins can access all programmes, lecturers can only access their assigned programmes
+  if (session.user.role === "LECTURER") {
+    const course = await prisma.course.findUnique({
+      where: { id },
+      select: { lecturerId: true },
+    });
+
+    if (!course || course.lecturerId !== session.user.id) {
+      redirect("/programmes");
+    }
+  } else if (session.user.role !== "ADMIN") {
     redirect("/dashboard");
   }
-
-  const { id } = await params;
 
   return <ProgrammeContentClient programmeId={id} />;
 }

@@ -3,13 +3,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit";
 
-
 // POST /api/admin/lessons - Create new lesson
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,6 +23,18 @@ export async function POST(request: NextRequest) {
         { error: "Title and moduleId are required" },
         { status: 400 },
       );
+    }
+
+    // Check ownership if lecturer
+    if (session.user.role === "LECTURER") {
+      const module = await prisma.module.findUnique({
+        where: { id: moduleId },
+        include: { course: { select: { lecturerId: true } } },
+      });
+
+      if (!module || module.course.lecturerId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     // Get the next order number

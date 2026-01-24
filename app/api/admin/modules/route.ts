@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-
 // POST /api/admin/modules - Create new module
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,6 +22,18 @@ export async function POST(request: NextRequest) {
         { error: "Title and courseId are required" },
         { status: 400 },
       );
+    }
+
+    // Lecturers can only create modules for their own courses
+    if (session.user.role === "LECTURER") {
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { lecturerId: true },
+      });
+
+      if (!course || course.lecturerId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     // Get the next order number

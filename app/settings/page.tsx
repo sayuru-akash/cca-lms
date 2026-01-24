@@ -391,7 +391,7 @@ export default function SettingsPage() {
           </Card>
 
           {/* Student Stats - Only show for students */}
-          {isStudent && profile.stats && (
+          {isStudent && profile.stats && "totalEnrolled" in profile.stats && (
             <>
               <Card>
                 <CardHeader>

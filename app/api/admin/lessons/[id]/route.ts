@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-
 // GET /api/admin/lessons/[id] - Get single lesson
 export async function GET(
   request: NextRequest,
@@ -11,7 +10,10 @@ export async function GET(
   try {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,6 +22,13 @@ export async function GET(
     const lesson = await prisma.lesson.findUnique({
       where: { id },
       include: {
+        module: {
+          include: {
+            course: {
+              select: { lecturerId: true },
+            },
+          },
+        },
         resources: {
           orderBy: { order: "asc" },
         },
@@ -33,6 +42,14 @@ export async function GET(
 
     if (!lesson) {
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
+    }
+
+    // Lecturers can only access lessons for their own courses
+    if (
+      session.user.role === "LECTURER" &&
+      lesson.module.course.lecturerId !== session.user.id
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     return NextResponse.json({ lesson });
@@ -53,13 +70,32 @@ export async function PUT(
   try {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     const body = await request.json();
     const { title, description, content, type, duration, order } = body;
+
+    // Check ownership if lecturer
+    if (session.user.role === "LECTURER") {
+      const lesson = await prisma.lesson.findUnique({
+        where: { id },
+        include: {
+          module: {
+            include: { course: { select: { lecturerId: true } } },
+          },
+        },
+      });
+
+      if (!lesson || lesson.module.course.lecturerId !== session.user.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+    }
 
     const lesson = await prisma.lesson.update({
       where: { id },

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-
 // POST /api/admin/lessons/reorder - Reorder lessons
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,6 +22,25 @@ export async function POST(request: NextRequest) {
         { error: "Invalid lessons array" },
         { status: 400 },
       );
+    }
+
+    // Check ownership if lecturer
+    if (session.user.role === "LECTURER" && lessons.length > 0) {
+      const firstLesson = await prisma.lesson.findUnique({
+        where: { id: lessons[0].id },
+        include: {
+          module: {
+            include: { course: { select: { lecturerId: true } } },
+          },
+        },
+      });
+
+      if (
+        !firstLesson ||
+        firstLesson.module.course.lecturerId !== session.user.id
+      ) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
     // Update all lesson orders in a transaction

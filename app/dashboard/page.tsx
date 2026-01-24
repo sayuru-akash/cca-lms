@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     case "ADMIN":
       return <AdminDashboard user={session.user} />;
     case "LECTURER":
-      return <LecturerDashboard user={session.user} />;
+      return <LecturerDashboard />;
     case "STUDENT":
       return <StudentDashboard user={session.user} />;
     default:

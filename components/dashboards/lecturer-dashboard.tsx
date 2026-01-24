@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { BookOpen, Users, Terminal, FileText } from "lucide-react";
 import {
   Card,
@@ -10,49 +11,92 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { UserRole } from "@/generated/prisma";
+import Link from "next/link";
 
-interface LecturerDashboardProps {
-  user: {
-    id: string;
-    role: UserRole;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
+interface DashboardStats {
+  totalCourses: number;
+  totalStudents: number;
+  totalModules: number;
+  publishedCourses: number;
 }
 
-const stats = [
-  { title: "Assigned Programmes", value: "3", icon: BookOpen },
-  { title: "My Students", value: "89", icon: Users },
-  { title: "Published Modules", value: "24", icon: FileText },
-];
+interface Course {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  enrollmentCount: number;
+  moduleCount: number;
+  createdAt: string;
+}
 
-const myProgrammes = [
-  {
-    id: 1,
-    name: "Web Development Bootcamp",
-    students: 45,
-    modules: 12,
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Advanced JavaScript",
-    students: 28,
-    modules: 8,
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "React Masterclass",
-    students: 16,
-    modules: 6,
-    status: "draft",
-  },
-];
+interface RecentEnrollment {
+  id: string;
+  studentName: string;
+  studentEmail: string;
+  courseTitle: string;
+  enrolledAt: string;
+  progress: number;
+}
 
-export default function LecturerDashboard({ user }: LecturerDashboardProps) {
+export default function LecturerDashboard() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalCourses: 0,
+    totalStudents: 0,
+    totalModules: 0,
+    publishedCourses: 0,
+  });
+  const [myProgrammes, setMyProgrammes] = useState<Course[]>([]);
+  const [recentEnrollments, setRecentEnrollments] = useState<
+    RecentEnrollment[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch("/api/lecturer/dashboard");
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+        setMyProgrammes(data.courses);
+        setRecentEnrollments(data.recentEnrollments);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
+        <p className="font-mono text-terminal-green">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  const statsDisplay = [
+    {
+      title: "Assigned Programmes",
+      value: stats.totalCourses.toString(),
+      icon: BookOpen,
+    },
+    {
+      title: "My Students",
+      value: stats.totalStudents.toString(),
+      icon: Users,
+    },
+    {
+      title: "Published Modules",
+      value: stats.totalModules.toString(),
+      icon: FileText,
+    },
+  ];
   return (
     <div className="min-h-screen bg-terminal-dark">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
@@ -70,7 +114,7 @@ export default function LecturerDashboard({ user }: LecturerDashboardProps) {
 
         {/* Stats */}
         <div className="grid gap-6 md:grid-cols-3 mb-8">
-          {stats.map((stat, index) => {
+          {statsDisplay.map((stat, index) => {
             const Icon = stat.icon;
             return (
               <Card key={index}>
@@ -91,7 +135,7 @@ export default function LecturerDashboard({ user }: LecturerDashboardProps) {
         </div>
 
         {/* My Programmes */}
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -103,41 +147,91 @@ export default function LecturerDashboard({ user }: LecturerDashboardProps) {
                   Programmes you&apos;re teaching
                 </CardDescription>
               </div>
-              <Button size="sm">Create Module</Button>
+              <Link href="/programmes">
+                <Button size="sm">View All</Button>
+              </Link>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {myProgrammes.map((programme) => (
-              <div
-                key={programme.id}
-                className="flex items-center justify-between p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50 hover:bg-terminal-green/5 transition-all"
-              >
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-mono font-semibold text-terminal-text">
-                      {programme.name}
-                    </h3>
-                    <Badge
-                      variant={
-                        programme.status === "active" ? "success" : "default"
-                      }
-                    >
-                      {programme.status}
-                    </Badge>
+            {myProgrammes.length === 0 ? (
+              <p className="text-center text-terminal-text-muted py-8">
+                No programmes assigned yet
+              </p>
+            ) : (
+              myProgrammes.slice(0, 5).map((programme) => (
+                <div
+                  key={programme.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50 hover:bg-terminal-green/5 transition-all"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-mono font-semibold text-terminal-text">
+                        {programme.title}
+                      </h3>
+                      <Badge
+                        variant={
+                          programme.status === "PUBLISHED"
+                            ? "success"
+                            : "default"
+                        }
+                      >
+                        {programme.status.toLowerCase()}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-sm font-mono text-terminal-text-muted">
+                      <span>{programme.enrollmentCount} students</span>
+                      <span>•</span>
+                      <span>{programme.moduleCount} modules</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 text-sm font-mono text-terminal-text-muted">
-                    <span>{programme.students} students</span>
-                    <span>•</span>
-                    <span>{programme.modules} modules</span>
-                  </div>
+                  <Link href={`/programmes/${programme.id}`}>
+                    <Button variant="outline" size="sm">
+                      Manage
+                    </Button>
+                  </Link>
                 </div>
-                <Button variant="outline" size="sm">
-                  Manage
-                </Button>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
+
+        {/* Recent Enrollments */}
+        {recentEnrollments.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Recent Enrollments
+              </CardTitle>
+              <CardDescription>New students in your programmes</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentEnrollments.map((enrollment) => (
+                <div
+                  key={enrollment.id}
+                  className="flex items-center justify-between p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50"
+                >
+                  <div>
+                    <h3 className="font-mono font-semibold text-terminal-text">
+                      {enrollment.studentName}
+                    </h3>
+                    <div className="text-sm font-mono text-terminal-text-muted">
+                      Enrolled in {enrollment.courseTitle}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono text-sm text-terminal-green">
+                      {enrollment.progress}% complete
+                    </div>
+                    <div className="text-xs text-terminal-text-muted">
+                      {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

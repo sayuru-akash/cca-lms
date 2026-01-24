@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { auditActions } from "@/lib/audit";
 
-
 // GET /api/admin/programmes/[id] - Get single programme
 export async function GET(
   request: NextRequest,
@@ -12,8 +11,11 @@ export async function GET(
   try {
     const session = await auth();
 
-    // Check if user is authenticated and is an admin
-    if (!session?.user || session.user.role !== "ADMIN") {
+    // Check if user is authenticated and is an admin or lecturer
+    if (
+      !session?.user ||
+      (session.user.role !== "ADMIN" && session.user.role !== "LECTURER")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -49,6 +51,14 @@ export async function GET(
         { error: "Programme not found" },
         { status: 404 },
       );
+    }
+
+    // Lecturers can only access their own programmes
+    if (
+      session.user.role === "LECTURER" &&
+      programme.lecturerId !== session.user.id
+    ) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Fetch lecturer separately
