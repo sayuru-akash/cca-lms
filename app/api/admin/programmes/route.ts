@@ -101,10 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!title) {
-      return NextResponse.json(
-        { error: "Title is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
     // Verify lecturer exists if provided

@@ -108,8 +108,6 @@ export default function NewProgrammeClient() {
     }
   };
 
-
-
   return (
     <div className="min-h-screen bg-terminal-dark">
       <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-8">
@@ -212,8 +210,6 @@ export default function NewProgrammeClient() {
                   Optional: Add a brief overview of what students will learn
                 </p>
               </div>
-
-
 
               {/* Status */}
               <div className="space-y-2">
