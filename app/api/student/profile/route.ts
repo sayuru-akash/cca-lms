@@ -106,13 +106,11 @@ export async function GET() {
               lessons: true,
             },
           },
-          enrollments: {
-            where: { status: { in: ["ACTIVE", "COMPLETED"] } },
-          },
           _count: {
             select: {
               enrollments: {
                 where: {
+                  status: { in: ["ACTIVE", "COMPLETED"] },
                   user: {
                     role: "STUDENT",
                   },
