@@ -111,7 +111,13 @@ export async function GET() {
           },
           _count: {
             select: {
-              enrollments: true,
+              enrollments: {
+                where: {
+                  user: {
+                    role: "STUDENT",
+                  },
+                },
+              },
             },
           },
         },
@@ -120,7 +126,18 @@ export async function GET() {
       const totalStudents =
         user.role === "ADMIN"
           ? await prisma.user.count({ where: { role: "STUDENT" } })
-          : courses.reduce((sum, c) => sum + c.enrollments.length, 0);
+          : await prisma.user.count({
+              where: {
+                role: "STUDENT",
+                courses: {
+                  some: {
+                    course: {
+                      lecturerId: user.id,
+                    },
+                  },
+                },
+              },
+            });
 
       const totalLecturers =
         user.role === "ADMIN"

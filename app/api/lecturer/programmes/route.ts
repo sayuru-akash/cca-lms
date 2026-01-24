@@ -20,7 +20,13 @@ export async function GET() {
       include: {
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                user: {
+                  role: "STUDENT",
+                },
+              },
+            },
             modules: true,
           },
         },

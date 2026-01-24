@@ -66,7 +66,13 @@ export async function GET(request: NextRequest) {
         },
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                user: {
+                  role: "STUDENT",
+                },
+              },
+            },
           },
         },
       },

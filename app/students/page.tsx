@@ -32,15 +32,22 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't do anything while status is loading
+    if (status === "loading") {
+      return;
+    }
+
     if (status === "unauthenticated") {
-      redirect("/auth/signin");
+      redirect("/auth/login");
+      return;
     }
 
-    if (session?.user?.role !== "LECTURER" && session?.user?.role !== "ADMIN") {
-      redirect("/dashboard");
-    }
-
-    if (status === "authenticated") {
+    // Only redirect if we're sure the user doesn't have the right role
+    if (status === "authenticated" && session?.user) {
+      if (session.user.role !== "LECTURER" && session.user.role !== "ADMIN") {
+        redirect("/dashboard");
+        return;
+      }
       fetchStudents();
     }
   }, [status, session]);
