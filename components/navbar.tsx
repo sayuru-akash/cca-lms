@@ -79,7 +79,7 @@ export function Navbar() {
               </div>
             </div>
             <span className="font-mono text-xl font-bold text-terminal-green terminal-glow">
-              Codezela_LMS
+              CCA_LMS
             </span>
             <span className="hidden sm:inline font-mono text-sm text-terminal-text-muted">
               v2.0.0

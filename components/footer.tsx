@@ -14,7 +14,7 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <Terminal className="h-6 w-6 text-terminal-green" />
               <span className="font-mono text-lg font-bold text-terminal-green">
-                Codezela_LMS
+                CCA_LMS
               </span>
             </div>
             <p className="text-sm font-mono text-terminal-text-muted">
