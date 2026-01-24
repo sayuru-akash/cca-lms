@@ -64,6 +64,7 @@ export async function GET(request: Request) {
       totalEnrollments,
       activeEnrollments,
       completedEnrollments,
+      completedInPeriod,
 
       // Previous period for comparison
       previousEnrollments,
@@ -127,7 +128,15 @@ export async function GET(request: Request) {
         },
       }),
 
-      // Completed enrollments (current period)
+      // Completed enrollments (all time for completion rate)
+      prisma.courseEnrollment.count({
+        where: {
+          ...programmeFilter,
+          status: "COMPLETED",
+        },
+      }),
+
+      // Completed enrollments in current period (for display)
       prisma.courseEnrollment.count({
         where: {
           ...programmeFilter,
@@ -145,32 +154,38 @@ export async function GET(request: Request) {
         },
       }),
 
-      // Top programmes by enrollment
-      prisma.course.findMany({
-        where: programmeId
-          ? { id: programmeId }
-          : { status: { not: "ARCHIVED" } },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          _count: {
-            select: {
-              enrollments: {
-                where: {
-                  enrolledAt: dateFilter,
-                },
+      // Top programmes by enrollment (in current period)
+      prisma.course
+        .findMany({
+          where: programmeId
+            ? { id: programmeId }
+            : { status: { not: "ARCHIVED" } },
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            enrollments: {
+              where: {
+                enrolledAt: dateFilter,
+              },
+              select: {
+                id: true,
               },
             },
           },
-        },
-        orderBy: {
-          enrollments: {
-            _count: "desc",
-          },
-        },
-        take: programmeId ? 1 : 10,
-      }),
+          take: 100, // Fetch more to sort accurately
+        })
+        .then((courses) =>
+          courses
+            .map((course) => ({
+              id: course.id,
+              title: course.title,
+              status: course.status,
+              enrollments: course.enrollments.length,
+            }))
+            .sort((a, b) => b.enrollments - a.enrollments)
+            .slice(0, programmeId ? 1 : 10),
+        ),
 
       // Programme completion rates
       prisma.course.findMany({
@@ -468,7 +483,7 @@ export async function GET(request: Request) {
         totalLecturers,
         totalEnrollments,
         activeEnrollments,
-        completedEnrollments,
+        completedEnrollments: completedInPeriod,
         completionRate: Math.round(completionRate * 10) / 10,
         enrollmentTrend: Math.round(enrollmentTrend * 10) / 10,
         averageProgress: Math.round(avgProgress * 10) / 10,
@@ -490,7 +505,7 @@ export async function GET(request: Request) {
           id: p.id,
           title: p.title,
           status: p.status,
-          enrollments: p._count.enrollments,
+          enrollments: p.enrollments,
         })),
         performance: programmePerformance,
       },

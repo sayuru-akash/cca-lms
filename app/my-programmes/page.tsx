@@ -54,7 +54,7 @@ export default function MyProgrammesPage() {
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("enrolled");
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,10 +111,10 @@ export default function MyProgrammesPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="font-mono text-3xl font-bold text-terminal-green terminal-glow mb-2">
-            $ available-programmes
+            $ my-programmes
           </h1>
           <p className="font-mono text-sm text-terminal-text-muted">
-            Browse and enroll in programmes
+            Programmes you are enrolled in
           </p>
         </div>
 

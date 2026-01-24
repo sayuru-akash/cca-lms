@@ -11,7 +11,6 @@ import {
   Settings,
   Home,
   FileText,
-  Bell,
   LogOut,
   GraduationCap,
   FolderOpen,
@@ -118,22 +117,14 @@ export function Navbar() {
           {/* Right side actions */}
           <div className="flex items-center gap-3">
             {session?.user && (
-              <>
-                <button className="relative flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]">
-                  <Bell className="h-4 w-4 text-terminal-green" />
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-terminal-green text-[10px] font-bold text-terminal-dark">
-                    3
-                  </span>
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex h-9 items-center gap-2 px-3 rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)] font-mono text-sm text-terminal-text-muted hover:text-terminal-green"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
-              </>
+              <button
+                onClick={handleLogout}
+                className="flex h-9 items-center gap-2 px-3 rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)] font-mono text-sm text-terminal-text-muted hover:text-terminal-green"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             )}
             <ThemeToggle />
           </div>

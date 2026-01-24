@@ -1,7 +1,6 @@
 "use client";
 
-import { Terminal, Github, Twitter, Mail } from "lucide-react";
-import Link from "next/link";
+import { Terminal, Github, Instagram, Facebook, Globe } from "lucide-react";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -9,7 +8,7 @@ export function Footer() {
   return (
     <footer className="border-t border-terminal-green/20 bg-terminal-darker/50 backdrop-blur-sm mt-auto">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Brand */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -19,71 +18,61 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm font-mono text-terminal-text-muted">
-              Modern learning management system with terminal aesthetics.
+              Learning Management System by CodeZela
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-mono text-sm font-semibold text-terminal-green mb-3">
-              Quick Links
-            </h3>
-            <ul className="space-y-2">
-              {["Dashboard", "Courses", "Students", "Analytics"].map((item) => (
-                <li key={item}>
-                  <Link
-                    href="#"
-                    className="text-sm font-mono text-terminal-text-muted hover:text-terminal-green transition-colors"
-                  >
-                    $ {item.toLowerCase()}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div>
-            <h3 className="font-mono text-sm font-semibold text-terminal-green mb-3">
-              Resources
-            </h3>
-            <ul className="space-y-2">
-              {["Documentation", "API", "Support", "FAQ"].map((item) => (
-                <li key={item}>
-                  <Link
-                    href="#"
-                    className="text-sm font-mono text-terminal-text-muted hover:text-terminal-green transition-colors"
-                  >
-                    $ {item.toLowerCase()}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           {/* Connect */}
-          <div>
+          <div className="flex flex-col items-start md:items-end">
             <h3 className="font-mono text-sm font-semibold text-terminal-green mb-3">
               Connect
             </h3>
             <div className="flex gap-2">
-              {[
-                { icon: Github, label: "GitHub" },
-                { icon: Twitter, label: "Twitter" },
-                { icon: Mail, label: "Email" },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <a
-                    key={item.label}
-                    href="#"
-                    aria-label={item.label}
-                    className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
-                  >
-                    <Icon className="h-4 w-4 text-terminal-green" />
-                  </a>
-                );
-              })}
+              <a
+                href="https://github.com/codezelat/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+              >
+                <Github className="h-4 w-4 text-terminal-green" />
+              </a>
+              <a
+                href="https://facebook.com/codezelaca"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+              >
+                <Facebook className="h-4 w-4 text-terminal-green" />
+              </a>
+              <a
+                href="https://instagram.com/codezelaca"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+              >
+                <Instagram className="h-4 w-4 text-terminal-green" />
+              </a>
+              <a
+                href="https://codezela.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="CodeZela Website"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+              >
+                <Globe className="h-4 w-4 text-terminal-green" />
+              </a>
+              <a
+                href="https://cca.it.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="CCA Website"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-terminal-green/20 bg-terminal-darker transition-all hover:border-terminal-green hover:shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+              >
+                <Globe className="h-4 w-4 text-terminal-green" />
+              </a>
             </div>
           </div>
         </div>
