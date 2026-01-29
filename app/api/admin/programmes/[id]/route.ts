@@ -152,7 +152,7 @@ export async function PUT(
     // Update programme with transaction to handle lecturer assignments
     const programme = await prisma.$transaction(async (tx) => {
       // Update basic fields
-      const updated = await tx.course.update({
+      await tx.course.update({
         where: { id },
         data: {
           ...(title && { title }),

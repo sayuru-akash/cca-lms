@@ -19,18 +19,30 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get("role"); // STUDENT or LECTURER
 
-    // Get enrollments
-    const enrollments = await prisma.courseEnrollment.findMany({
-      where: roleFilter
-        ? {
-            courseId,
-            user: {
-              role: roleFilter as "STUDENT" | "LECTURER",
-            },
-          }
-        : {
-            courseId,
+    // Get lecturer assignments
+    const lecturerAssignments = await prisma.courseLecturer.findMany({
+      where: {
+        courseId,
+      },
+      include: {
+        lecturer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
           },
+        },
+      },
+      orderBy: { assignedAt: "desc" },
+    });
+
+    // Get student enrollments
+    const studentEnrollments = await prisma.courseEnrollment.findMany({
+      where: {
+        courseId,
+      },
       include: {
         user: {
           select: {
@@ -44,6 +56,38 @@ export async function GET(
       },
       orderBy: { enrolledAt: "desc" },
     });
+
+    // Combine and format results
+    const lecturerData = lecturerAssignments.map((assignment) => ({
+      id: assignment.id,
+      userId: assignment.lecturerId,
+      courseId: assignment.courseId,
+      enrolledAt: assignment.assignedAt,
+      user: assignment.lecturer,
+      status: "ACTIVE",
+    }));
+
+    const studentData = studentEnrollments.map((enrollment) => ({
+      id: enrollment.id,
+      userId: enrollment.userId,
+      courseId: enrollment.courseId,
+      enrolledAt: enrollment.enrolledAt,
+      user: enrollment.user,
+      status: enrollment.status,
+    }));
+
+    // Filter by role if requested
+    let enrollments;
+    if (roleFilter === "LECTURER") {
+      enrollments = lecturerData;
+    } else if (roleFilter === "STUDENT") {
+      enrollments = studentData;
+    } else {
+      // Combine both, sorted by date
+      enrollments = [...lecturerData, ...studentData].sort(
+        (a, b) => b.enrolledAt.getTime() - a.enrolledAt.getTime(),
+      );
+    }
 
     return NextResponse.json({ enrollments });
   } catch (error) {
@@ -98,8 +142,12 @@ export async function POST(
       select: { id: true, role: true, name: true, email: true },
     });
 
-    const lecturerIds = users.filter((u) => u.role === "LECTURER").map((u) => u.id);
-    const studentIds = users.filter((u) => u.role === "STUDENT").map((u) => u.id);
+    const lecturerIds = users
+      .filter((u) => u.role === "LECTURER")
+      .map((u) => u.id);
+    const studentIds = users
+      .filter((u) => u.role === "STUDENT")
+      .map((u) => u.id);
 
     let lecturerAssignments = 0;
     let studentEnrollments = 0;
@@ -116,8 +164,12 @@ export async function POST(
         select: { lecturerId: true },
       });
 
-      const existingLecturerIds = new Set(existingLecturers.map((e) => e.lecturerId));
-      const newLecturerIds = lecturerIds.filter((id) => !existingLecturerIds.has(id));
+      const existingLecturerIds = new Set(
+        existingLecturers.map((e) => e.lecturerId),
+      );
+      const newLecturerIds = lecturerIds.filter(
+        (id) => !existingLecturerIds.has(id),
+      );
 
       // Create new lecturer assignments
       if (newLecturerIds.length > 0) {
@@ -178,7 +230,7 @@ export async function POST(
 
     const totalAdded = lecturerAssignments + studentEnrollments;
     let message = "";
-    
+
     if (totalAdded > 0) {
       const parts = [];
       if (lecturerAssignments > 0) {
@@ -233,7 +285,63 @@ export async function DELETE(
       );
     }
 
-    // Check if enrollment exists
+    // Check user role
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // For lecturers, delete CourseLecturer assignment
+    if (user.role === "LECTURER") {
+      const assignment = await prisma.courseLecturer.findUnique({
+        where: {
+          courseId_lecturerId: {
+            courseId,
+            lecturerId: userId,
+          },
+        },
+        include: {
+          course: {
+            select: {
+              title: true,
+            },
+          },
+        },
+      });
+
+      if (!assignment) {
+        return NextResponse.json(
+          { error: "Lecturer assignment not found" },
+          { status: 404 },
+        );
+      }
+
+      await prisma.courseLecturer.delete({
+        where: {
+          courseId_lecturerId: {
+            courseId,
+            lecturerId: userId,
+          },
+        },
+      });
+
+      // Audit log
+      await auditActions.programmeEnrollmentDeleted(
+        session.user.id,
+        assignment.id,
+        assignment.course.title,
+      );
+
+      return NextResponse.json({
+        message: "Lecturer assignment removed successfully",
+      });
+    }
+
+    // For students, delete CourseEnrollment
     const enrollment = await prisma.courseEnrollment.findUnique({
       where: {
         userId_courseId: {
