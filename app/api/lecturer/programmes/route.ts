@@ -12,10 +12,22 @@ export async function GET() {
 
     const lecturerId = session.user.id;
 
-    // Get only courses assigned to this lecturer
+    // Get courses assigned to this lecturer through the many-to-many relationship
+    // Also include courses where they are the primary lecturer (backward compatibility)
     const courses = await prisma.course.findMany({
       where: {
-        lecturerId,
+        OR: [
+          {
+            lecturers: {
+              some: {
+                lecturerId,
+              },
+            },
+          },
+          {
+            lecturerId, // Backward compatibility for old lecturerId field
+          },
+        ],
       },
       include: {
         _count: {

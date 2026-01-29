@@ -60,6 +60,7 @@ interface Programme {
   thumbnail: string | null;
   status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   lecturerId: string | null;
+  lecturers?: Lecturer[]; // New: Array of assigned lecturers
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -74,6 +75,7 @@ interface ProgrammeDetails extends Programme {
     name: string | null;
     email: string;
   } | null;
+  lecturers: Lecturer[]; // Array of assigned lecturers
   modules: Array<{
     id: string;
     title: string;
@@ -140,11 +142,13 @@ export default function ProgrammesClient() {
     title: string;
     description: string;
     lecturerId: string | null;
+    lecturerIds: string[]; // New: Array of lecturer IDs
     status: string;
   }>({
     title: "",
     description: "",
     lecturerId: "",
+    lecturerIds: [], // Initialize as empty array
     status: "",
   });
 
@@ -240,6 +244,7 @@ export default function ProgrammesClient() {
       title: programme.title,
       description: programme.description || "",
       lecturerId: programme.lecturerId || "",
+      lecturerIds: programme.lecturers?.map((l) => l.id) || [], // Initialize with existing lecturers
       status: programme.status,
     });
     setEditError("");
@@ -260,8 +265,10 @@ export default function ProgrammesClient() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...editForm,
-            lecturerId: editForm.lecturerId || null, // Convert empty string to null
+            title: editForm.title,
+            description: editForm.description,
+            status: editForm.status,
+            lecturerIds: editForm.lecturerIds, // Send the array of lecturer IDs
           }),
         },
       );
@@ -960,26 +967,46 @@ export default function ProgrammesClient() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-lecturer">Assigned Lecturer</Label>
-              <Select
-                value={editForm.lecturerId || ""}
-                onValueChange={(value) =>
-                  setEditForm({ ...editForm, lecturerId: value || null })
-                }
-                disabled={isEditing}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select lecturer (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No Lecturer Assigned</SelectItem>
-                  {lecturers.map((lecturer) => (
-                    <SelectItem key={lecturer.id} value={lecturer.id}>
-                      {lecturer.name || lecturer.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="edit-lecturer">Assigned Lecturers</Label>
+              <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-3">
+                {lecturers.length === 0 ? (
+                  <p className="text-sm text-terminal-text-muted">
+                    No lecturers available
+                  </p>
+                ) : (
+                  lecturers.map((lecturer) => (
+                    <div
+                      key={lecturer.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={`lecturer-${lecturer.id}`}
+                        checked={editForm.lecturerIds.includes(lecturer.id)}
+                        onCheckedChange={(checked) => {
+                          setEditForm({
+                            ...editForm,
+                            lecturerIds: checked
+                              ? [...editForm.lecturerIds, lecturer.id]
+                              : editForm.lecturerIds.filter(
+                                  (id) => id !== lecturer.id,
+                                ),
+                          });
+                        }}
+                        disabled={isEditing}
+                      />
+                      <label
+                        htmlFor={`lecturer-${lecturer.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {lecturer.name || lecturer.email}
+                      </label>
+                    </div>
+                  ))
+                )}
+              </div>
+              <p className="text-xs text-terminal-text-muted">
+                Select one or more lecturers to assign to this programme
+              </p>
             </div>
 
             <div className="space-y-2">

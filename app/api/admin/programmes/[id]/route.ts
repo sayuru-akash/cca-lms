@@ -37,6 +37,17 @@ export async function GET(
             },
           },
         },
+        lecturers: {
+          include: {
+            lecturer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             enrollments: {
@@ -60,29 +71,23 @@ export async function GET(
     }
 
     // Lecturers can only access their own programmes
-    if (
-      session.user.role === "LECTURER" &&
-      programme.lecturerId !== session.user.id
-    ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (session.user.role === "LECTURER") {
+      const isAssigned =
+        programme.lecturers.some((l) => l.lecturerId === session.user.id) ||
+        programme.lecturerId === session.user.id; // Check both new and old relationship
+
+      if (!isAssigned) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
     }
 
-    // Fetch lecturer separately if assigned
-    const lecturer = programme.lecturerId
-      ? await prisma.user.findUnique({
-          where: { id: programme.lecturerId },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        })
-      : null;
+    // Map lecturers from the relationship
+    const lecturers = programme.lecturers.map((l) => l.lecturer);
 
     return NextResponse.json({
       programme: {
         ...programme,
-        lecturer,
+        lecturers,
       },
     });
   } catch (error) {
@@ -109,11 +114,15 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description, thumbnail, lecturerId, status } = body;
+    const { title, description, thumbnail, lecturerId, lecturerIds, status } =
+      body;
 
     // Get existing programme for audit
     const existingProgramme = await prisma.course.findUnique({
       where: { id },
+      include: {
+        lecturers: true,
+      },
     });
 
     if (!existingProgramme) {
@@ -123,44 +132,85 @@ export async function PUT(
       );
     }
 
-    // If lecturer is being changed, verify new lecturer
-    if (lecturerId && lecturerId !== existingProgramme.lecturerId) {
-      const lecturer = await prisma.user.findUnique({
-        where: { id: lecturerId },
+    // Validate lecturers if provided
+    if (lecturerIds && Array.isArray(lecturerIds) && lecturerIds.length > 0) {
+      const lecturers = await prisma.user.findMany({
+        where: {
+          id: { in: lecturerIds },
+          role: "LECTURER",
+        },
       });
 
-      if (!lecturer || lecturer.role !== "LECTURER") {
+      if (lecturers.length !== lecturerIds.length) {
         return NextResponse.json(
-          { error: "Invalid lecturer selected" },
+          { error: "One or more invalid lecturers selected" },
           { status: 400 },
         );
       }
     }
 
-    // Update programme
-    const programme = await prisma.course.update({
-      where: { id },
-      data: {
-        ...(title && { title }),
-        ...(description !== undefined && { description }),
-        ...(thumbnail !== undefined && { thumbnail }),
-        ...(lecturerId && { lecturerId }),
-        ...(status && { status }),
-      },
-      include: {
-        _count: {
-          select: {
-            enrollments: {
-              where: {
-                user: {
-                  role: "STUDENT",
+    // Update programme with transaction to handle lecturer assignments
+    const programme = await prisma.$transaction(async (tx) => {
+      // Update basic fields
+      const updated = await tx.course.update({
+        where: { id },
+        data: {
+          ...(title && { title }),
+          ...(description !== undefined && { description }),
+          ...(thumbnail !== undefined && { thumbnail }),
+          ...(lecturerId !== undefined && { lecturerId }), // Keep for backward compatibility
+          ...(status && { status }),
+        },
+      });
+
+      // Handle lecturer assignments if provided
+      if (lecturerIds !== undefined) {
+        // Delete existing assignments
+        await tx.courseLecturer.deleteMany({
+          where: { courseId: id },
+        });
+
+        // Create new assignments
+        if (Array.isArray(lecturerIds) && lecturerIds.length > 0) {
+          await tx.courseLecturer.createMany({
+            data: lecturerIds.map((lecId) => ({
+              courseId: id,
+              lecturerId: lecId,
+              assignedBy: session.user.id,
+            })),
+          });
+        }
+      }
+
+      // Fetch updated programme with counts
+      return tx.course.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              enrollments: {
+                where: {
+                  user: {
+                    role: "STUDENT",
+                  },
+                },
+              },
+              modules: true,
+            },
+          },
+          lecturers: {
+            include: {
+              lecturer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
                 },
               },
             },
-            modules: true,
           },
         },
-      },
+      });
     });
 
     // Audit log with before/after

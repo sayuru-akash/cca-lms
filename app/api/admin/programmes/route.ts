@@ -57,6 +57,17 @@ export async function GET(request: NextRequest) {
           lecturerId: true,
           createdAt: true,
           updatedAt: true,
+          lecturers: {
+            include: {
+              lecturer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               enrollments: {
@@ -74,8 +85,14 @@ export async function GET(request: NextRequest) {
       prisma.course.count({ where }),
     ]);
 
+    // Map programmes to include lecturers array
+    const mappedProgrammes = programmes.map((prog) => ({
+      ...prog,
+      lecturers: prog.lecturers.map((l) => l.lecturer),
+    }));
+
     return NextResponse.json({
-      programmes,
+      programmes: mappedProgrammes,
       pagination: {
         page,
         limit,
@@ -103,36 +120,56 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, thumbnail, lecturerId, status } = body;
+    const { title, description, thumbnail, lecturerId, lecturerIds, status } =
+      body;
 
     // Validate required fields
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    // Verify lecturer exists if provided
-    if (lecturerId) {
-      const lecturer = await prisma.user.findUnique({
-        where: { id: lecturerId },
+    // Validate lecturers if provided
+    if (lecturerIds && Array.isArray(lecturerIds) && lecturerIds.length > 0) {
+      const lecturers = await prisma.user.findMany({
+        where: {
+          id: { in: lecturerIds },
+          role: "LECTURER",
+        },
       });
 
-      if (!lecturer || lecturer.role !== "LECTURER") {
+      if (lecturers.length !== lecturerIds.length) {
         return NextResponse.json(
-          { error: "Invalid lecturer selected" },
+          { error: "One or more invalid lecturers selected" },
           { status: 400 },
         );
       }
     }
 
-    // Create programme
-    const programme = await prisma.course.create({
-      data: {
-        title,
-        description: description || null,
-        thumbnail: thumbnail || null,
-        lecturerId: lecturerId || null,
-        status: status || "DRAFT",
-      },
+    // Create programme with transaction
+    const programme = await prisma.$transaction(async (tx) => {
+      // Create the course
+      const course = await tx.course.create({
+        data: {
+          title,
+          description: description || null,
+          thumbnail: thumbnail || null,
+          lecturerId: lecturerId || null, // Backward compatibility
+          status: status || "DRAFT",
+        },
+      });
+
+      // Create lecturer assignments if provided
+      if (lecturerIds && Array.isArray(lecturerIds) && lecturerIds.length > 0) {
+        await tx.courseLecturer.createMany({
+          data: lecturerIds.map((lecId) => ({
+            courseId: course.id,
+            lecturerId: lecId,
+            assignedBy: session.user.id,
+          })),
+        });
+      }
+
+      return course;
     });
 
     // Audit log

@@ -46,13 +46,14 @@ model User {
   updatedAt     DateTime      @updatedAt
 
   // Relations
-  accounts      Account[]
-  sessions      Session[]
-  courses       CourseEnrollment[]
-  submissions   Submission[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  files         UploadedFile[]
+  accounts        Account[]
+  sessions        Session[]
+  courses         CourseEnrollment[]
+  submissions     Submission[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  files           UploadedFile[]
+  lecturerCourses CourseLecturer[] // Courses where this user is a lecturer
 
   @@index([email])
   @@index([role])
@@ -120,16 +121,34 @@ model Course {
   description String?      @db.Text
   thumbnail   String? // R2 file key
   status      CourseStatus @default(DRAFT)
-  lecturerId  String?
+  lecturerId  String? // Kept for backward compatibility, will be deprecated
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   // Relations
   enrollments CourseEnrollment[]
   modules     Module[]
+  lecturers   CourseLecturer[] // New many-to-many relationship
 
   @@index([lecturerId])
   @@index([status])
+}
+
+// Many-to-many relationship between Course and Lecturers
+model CourseLecturer {
+  id         String   @id @default(cuid())
+  courseId   String
+  lecturerId String
+  assignedAt DateTime @default(now())
+  assignedBy String? // Admin who assigned the lecturer
+
+  // Relations
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lecturer User   @relation(fields: [lecturerId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, lecturerId])
+  @@index([courseId])
+  @@index([lecturerId])
 }
 
 model Module {
