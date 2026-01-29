@@ -5,7 +5,38 @@ import { createAuditLog } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, password } = await request.json();
+    const { token, password, turnstileToken } = await request.json();
+
+    // Verify Turnstile token
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification required" },
+        { status: 400 },
+      );
+    }
+
+    const turnstileResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY!,
+          response: turnstileToken,
+        }),
+      },
+    );
+
+    const turnstileResult = await turnstileResponse.json();
+
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed" },
+        { status: 400 },
+      );
+    }
 
     if (!token || !password) {
       return NextResponse.json(

@@ -116,6 +116,9 @@ export default function UsersClient() {
     email: "",
     role: activeTab,
   });
+  const [createTurnstileToken, setCreateTurnstileToken] = useState<
+    string | null
+  >(null);
 
   // Edit
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -197,6 +200,7 @@ export default function UsersClient() {
         body: JSON.stringify({
           ...createForm,
           generatePassword: true,
+          turnstileToken: createTurnstileToken,
         }),
       });
 
@@ -476,6 +480,7 @@ export default function UsersClient() {
     setCreateError("");
     setIsCreating(false);
     setCreateForm({ name: "", email: "", role: activeTab });
+    setCreateTurnstileToken(null);
   };
 
   const openCreateDialog = () => {
@@ -918,8 +923,24 @@ export default function UsersClient() {
                 </p>
               </div>
 
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <div
+                  className="cf-turnstile"
+                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  data-callback={(token: string) =>
+                    setCreateTurnstileToken(token)
+                  }
+                  data-theme="dark"
+                />
+              </div>
+
               <div className="flex gap-2 pt-2">
-                <Button type="submit" disabled={isCreating} className="flex-1">
+                <Button
+                  type="submit"
+                  disabled={isCreating || !createTurnstileToken}
+                  className="flex-1"
+                >
                   {isCreating ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

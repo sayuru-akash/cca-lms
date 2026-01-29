@@ -108,7 +108,38 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, role, generatePassword } = body;
+    const { name, email, role, generatePassword, turnstileToken } = body;
+
+    // Verify Turnstile token
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification required" },
+        { status: 400 },
+      );
+    }
+
+    const turnstileResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY!,
+          response: turnstileToken,
+        }),
+      },
+    );
+
+    const turnstileResult = await turnstileResponse.json();
+
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed" },
+        { status: 400 },
+      );
+    }
 
     // Validation
     if (!email || !email.includes("@")) {

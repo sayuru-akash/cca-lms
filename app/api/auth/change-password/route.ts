@@ -12,7 +12,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { currentPassword, newPassword } = await request.json();
+    const { currentPassword, newPassword, turnstileToken } =
+      await request.json();
+
+    // Verify Turnstile token
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification required" },
+        { status: 400 },
+      );
+    }
+
+    const turnstileResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY!,
+          response: turnstileToken,
+        }),
+      },
+    );
+
+    const turnstileResult = await turnstileResponse.json();
+
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: "CAPTCHA verification failed" },
+        { status: 400 },
+      );
+    }
 
     if (!currentPassword || !newPassword) {
       return NextResponse.json(

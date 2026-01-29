@@ -24,11 +24,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        turnstileToken: { label: "Turnstile Token", type: "text" },
       },
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
             return null; // Return null instead of throwing to avoid Configuration error
+          }
+
+          // Verify Turnstile token
+          if (!credentials.turnstileToken) {
+            throw new Error("CAPTCHA verification required");
+          }
+
+          const turnstileResponse = await fetch(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+              },
+              body: new URLSearchParams({
+                secret: process.env.TURNSTILE_SECRET_KEY!,
+                response: credentials.turnstileToken as string,
+              }),
+            },
+          );
+
+          const turnstileResult = await turnstileResponse.json();
+
+          if (!turnstileResult.success) {
+            throw new Error("CAPTCHA verification failed");
           }
 
           const user = await prisma.user.findUnique({

@@ -72,6 +72,11 @@ export default function RootLayout({
             gtag('config', 'G-S1F397DHHS');
           `}
         </Script>
+        {/* Cloudflare Turnstile */}
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col scanline`}

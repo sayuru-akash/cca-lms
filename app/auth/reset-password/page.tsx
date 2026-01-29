@@ -31,6 +31,9 @@ export default function ResetPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [requestTurnstileToken, setRequestTurnstileToken] = useState<
+    string | null
+  >(null);
 
   // Reset password state
   const [password, setPassword] = useState("");
@@ -39,6 +42,9 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetTurnstileToken, setResetTurnstileToken] = useState<string | null>(
+    null,
+  );
 
   const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +54,7 @@ export default function ResetPasswordPage() {
       const response = await fetch("/api/auth/request-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstileToken: requestTurnstileToken }),
       });
 
       if (response.ok) {
@@ -86,7 +92,11 @@ export default function ResetPasswordPage() {
       const response = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({
+          token,
+          password,
+          turnstileToken: resetTurnstileToken,
+        }),
       });
 
       const data = await response.json();
@@ -252,11 +262,23 @@ export default function ResetPasswordPage() {
                   </ul>
                 </div>
 
+                {/* Turnstile CAPTCHA */}
+                <div className="space-y-2">
+                  <div
+                    className="cf-turnstile"
+                    data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    data-callback={(token: string) =>
+                      setResetTurnstileToken(token)
+                    }
+                    data-theme="dark"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Button
                     type="submit"
                     className="w-full gap-2"
-                    disabled={isLoading}
+                    disabled={isLoading || !resetTurnstileToken}
                   >
                     {isLoading ? (
                       <>
@@ -355,11 +377,23 @@ export default function ResetPasswordPage() {
                     />
                   </div>
 
+                  {/* Turnstile CAPTCHA */}
+                  <div className="space-y-2">
+                    <div
+                      className="cf-turnstile"
+                      data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                      data-callback={(token: string) =>
+                        setRequestTurnstileToken(token)
+                      }
+                      data-theme="dark"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Button
                       type="submit"
                       className="w-full gap-2"
-                      disabled={isLoading}
+                      disabled={isLoading || !requestTurnstileToken}
                     >
                       {isLoading ? (
                         <>

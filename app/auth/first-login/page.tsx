@@ -28,6 +28,7 @@ export default function FirstLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const passwordRequirements = [
     { text: "At least 8 characters", met: newPassword.length >= 8 },
@@ -60,6 +61,7 @@ export default function FirstLoginPage() {
         body: JSON.stringify({
           currentPassword,
           newPassword,
+          turnstileToken,
         }),
       });
 
@@ -199,11 +201,21 @@ export default function FirstLoginPage() {
                 ))}
               </div>
 
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <div
+                  className="cf-turnstile"
+                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  data-callback={(token: string) => setTurnstileToken(token)}
+                  data-theme="dark"
+                />
+              </div>
+
               {/* Submit */}
               <Button
                 type="submit"
                 className="w-full gap-2"
-                disabled={!allRequirementsMet || isLoading}
+                disabled={!allRequirementsMet || isLoading || !turnstileToken}
               >
                 {isLoading ? (
                   <>

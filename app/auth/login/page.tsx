@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
@@ -43,6 +44,7 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email,
         password,
+        turnstileToken,
         callbackUrl,
         redirect: false,
       });
@@ -53,6 +55,10 @@ export default function LoginPage() {
           CredentialsSignin: "Invalid email or password",
           "Invalid credentials": "Invalid email or password",
           "Account is not active": "Your account has been disabled",
+          "CAPTCHA verification required":
+            "Please complete the CAPTCHA verification",
+          "CAPTCHA verification failed":
+            "CAPTCHA verification failed. Please try again.",
           "Email and password required": "Please enter email and password",
           Configuration: "Invalid email or password", // Map configuration error to credential error
           AccessDenied: "Access denied",
@@ -177,11 +183,21 @@ export default function LoginPage() {
                 </Link>
               </div>
 
+              {/* Turnstile CAPTCHA */}
+              <div className="space-y-2">
+                <div
+                  className="cf-turnstile"
+                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                  data-callback={(token: string) => setTurnstileToken(token)}
+                  data-theme="dark"
+                />
+              </div>
+
               {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full gap-2"
-                disabled={isLoading}
+                disabled={isLoading || !turnstileToken}
               >
                 {isLoading ? (
                   <>
