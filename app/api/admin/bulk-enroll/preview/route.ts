@@ -102,6 +102,7 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         email: true,
+        role: true,
       },
     });
 
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
           programmeId: row.programmeId,
           programmeTitle: programme?.title || "Unknown Programme",
           status: "error" as const,
-          error: `User not found or not an active ${userType.toLowerCase()}`,
+          error: `User not found, not active, or not a ${userType.toLowerCase()}`,
         };
       }
 

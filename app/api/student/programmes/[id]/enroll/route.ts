@@ -15,6 +15,19 @@ export async function POST(
 
     const { id: courseId } = await params;
 
+    // Verify user is a student
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (!user || user.role !== "STUDENT") {
+      return NextResponse.json(
+        { error: "Only students can enroll in programmes" },
+        { status: 403 },
+      );
+    }
+
     // Check if course exists and is published
     const course = await prisma.course.findUnique({
       where: { id: courseId },
