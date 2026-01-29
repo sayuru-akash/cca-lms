@@ -7,6 +7,7 @@ import { Users, Search, Mail, BookOpen, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface Student {
   id: string;
@@ -25,11 +26,22 @@ interface Student {
   completedCourses: number;
 }
 
+interface PaginationData {
+  page: number;
+  limit: number;
+  totalCount: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
 export default function StudentsPage() {
   const { data: session, status } = useSession();
   const [students, setStudents] = useState<Student[]>([]);
+  const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     // Don't do anything while status is loading
@@ -50,14 +62,18 @@ export default function StudentsPage() {
       }
       fetchStudents();
     }
-  }, [status, session]);
+  }, [status, session, currentPage]);
 
   const fetchStudents = async () => {
     try {
-      const response = await fetch("/api/lecturer/students");
+      setLoading(true);
+      const response = await fetch(
+        `/api/lecturer/students?page=${currentPage}&limit=10`,
+      );
       if (response.ok) {
         const data = await response.json();
         setStudents(data.students);
+        setPagination(data.pagination);
       }
     } catch (error) {
       console.error("Error fetching students:", error);
@@ -117,7 +133,7 @@ export default function StudentsPage() {
               <div className="flex items-center justify-between">
                 <Users className="h-6 w-6 text-terminal-green" />
                 <div className="text-3xl font-bold font-mono text-terminal-green">
-                  {students.length}
+                  {pagination?.totalCount || 0}
                 </div>
               </div>
               <p className="font-mono text-sm text-terminal-text-muted mt-2">
@@ -134,7 +150,7 @@ export default function StudentsPage() {
                 </div>
               </div>
               <p className="font-mono text-sm text-terminal-text-muted mt-2">
-                Total Enrollments
+                Enrollments (This Page)
               </p>
             </CardContent>
           </Card>
@@ -155,7 +171,7 @@ export default function StudentsPage() {
                 </div>
               </div>
               <p className="font-mono text-sm text-terminal-text-muted mt-2">
-                Avg Progress
+                Avg Progress (This Page)
               </p>
             </CardContent>
           </Card>
@@ -166,7 +182,7 @@ export default function StudentsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Students ({filteredStudents.length})
+              Students ({pagination?.totalCount || 0})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -259,6 +275,39 @@ export default function StudentsPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-terminal-green/20">
+                <div className="text-sm font-mono text-terminal-text-muted">
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+                  {Math.min(
+                    pagination.page * pagination.limit,
+                    pagination.totalCount,
+                  )}{" "}
+                  of {pagination.totalCount} students
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(pagination.page - 1)}
+                    disabled={!pagination.hasPrev}
+                    className="px-3 py-1 text-sm font-mono border border-terminal-green/50 rounded hover:bg-terminal-green/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 text-sm font-mono text-terminal-green">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(pagination.page + 1)}
+                    disabled={!pagination.hasNext}
+                    className="px-3 py-1 text-sm font-mono border border-terminal-green/50 rounded hover:bg-terminal-green/10 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </CardContent>

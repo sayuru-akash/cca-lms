@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth();
 
@@ -11,9 +11,13 @@ export async function GET() {
     }
 
     const lecturerId = session.user.id;
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const offset = (page - 1) * limit;
 
-    // Get all students enrolled in lecturer's courses
-    const enrollments = await prisma.courseEnrollment.findMany({
+    // First, get all unique student IDs enrolled in lecturer's courses
+    const allStudentEnrollments = await prisma.courseEnrollment.findMany({
       where: {
         course: {
           lecturers: {
@@ -23,7 +27,46 @@ export async function GET() {
           },
         },
         user: {
-          role: "STUDENT", // Only include users with STUDENT role
+          role: "STUDENT",
+        },
+      },
+      select: {
+        userId: true,
+      },
+      distinct: ["userId"],
+    });
+
+    const allStudentIds = allStudentEnrollments.map((e) => e.userId);
+    const totalStudents = allStudentIds.length;
+
+    // Paginate the student IDs
+    const paginatedStudentIds = allStudentIds.slice(offset, offset + limit);
+
+    // If no students on this page, return empty result
+    if (paginatedStudentIds.length === 0) {
+      return NextResponse.json({
+        students: [],
+        pagination: {
+          page,
+          limit,
+          totalCount: totalStudents,
+          totalPages: Math.ceil(totalStudents / limit),
+          hasNext: page < Math.ceil(totalStudents / limit),
+          hasPrev: page > 1,
+        },
+      });
+    }
+
+    // Get all enrollments for the paginated students
+    const enrollments = await prisma.courseEnrollment.findMany({
+      where: {
+        userId: { in: paginatedStudentIds },
+        course: {
+          lecturers: {
+            some: {
+              lecturerId,
+            },
+          },
         },
       },
       include: {
@@ -91,7 +134,19 @@ export async function GET() {
       enrolledCoursesCount: student.enrolledCourses.length,
     }));
 
-    return NextResponse.json({ students });
+    const totalPages = Math.ceil(totalStudents / limit);
+
+    return NextResponse.json({
+      students,
+      pagination: {
+        page,
+        limit,
+        totalCount: totalStudents,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+    });
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json(

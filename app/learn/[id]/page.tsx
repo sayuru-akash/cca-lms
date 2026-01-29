@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   BookOpen,
   CheckCircle2,
@@ -71,11 +72,44 @@ export default function ProgrammeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [courseId, setCourseId] = useState<string | null>(null);
   const [programme, setProgramme] = useState<ProgrammeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [openModules, setOpenModules] = useState<Set<string>>(new Set());
   const [enrolling, setEnrolling] = useState(false);
+
+  // Check if user is authenticated and is a student
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (!session?.user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    if (session.user.role !== "STUDENT") {
+      router.push("/dashboard");
+      return;
+    }
+  }, [session, status, router]);
+
+  // Don't render anything while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
+        <div className="flex items-center gap-3 text-terminal-green">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="font-mono">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated or not a student
+  if (!session?.user || session.user.role !== "STUDENT") {
+    return null;
+  }
 
   useEffect(() => {
     params.then(({ id }) => {
@@ -114,6 +148,12 @@ export default function ProgrammeDetailPage({
 
   const handleEnroll = async () => {
     if (!courseId) return;
+
+    // Double-check user role before enrollment
+    if (session?.user?.role !== "STUDENT") {
+      alert("Only students can enroll in programmes");
+      return;
+    }
 
     try {
       setEnrolling(true);
