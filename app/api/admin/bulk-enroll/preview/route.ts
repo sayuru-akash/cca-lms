@@ -120,21 +120,40 @@ export async function POST(request: NextRequest) {
 
     const programmeMap = new Map(programmes.map((p) => [p.id, p]));
 
-    // Check existing enrollments
-    const existingEnrollments = await prisma.courseEnrollment.findMany({
-      where: {
-        userId: { in: userIds },
-        courseId: { in: programmeIds },
-      },
-      select: {
-        userId: true,
-        courseId: true,
-      },
-    });
+    // Check existing enrollments/assignments based on user type
+    let enrollmentSet: Set<string>;
 
-    const enrollmentSet = new Set(
-      existingEnrollments.map((e) => `${e.userId}-${e.courseId}`),
-    );
+    if (userType === "LECTURER") {
+      // For lecturers, check CourseLecturer table
+      const existingAssignments = await prisma.courseLecturer.findMany({
+        where: {
+          lecturerId: { in: userIds },
+          courseId: { in: programmeIds },
+        },
+        select: {
+          lecturerId: true,
+          courseId: true,
+        },
+      });
+      enrollmentSet = new Set(
+        existingAssignments.map((a) => `${a.lecturerId}-${a.courseId}`),
+      );
+    } else {
+      // For students, check CourseEnrollment table
+      const existingEnrollments = await prisma.courseEnrollment.findMany({
+        where: {
+          userId: { in: userIds },
+          courseId: { in: programmeIds },
+        },
+        select: {
+          userId: true,
+          courseId: true,
+        },
+      });
+      enrollmentSet = new Set(
+        existingEnrollments.map((e) => `${e.userId}-${e.courseId}`),
+      );
+    }
 
     // Build preview
     const preview = rows.map((row) => {

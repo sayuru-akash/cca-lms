@@ -144,7 +144,10 @@ export default function BulkEnrollClient() {
       const response = await fetch("/api/admin/bulk-enroll/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enrollments: validEnrollments }),
+        body: JSON.stringify({
+          enrollments: validEnrollments,
+          userType,
+        }),
       });
 
       const data = await response.json();
