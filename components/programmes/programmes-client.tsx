@@ -1403,7 +1403,7 @@ export default function ProgrammesClient() {
                   <div className="text-center py-8">
                     <Users className="h-8 w-8 text-terminal-text-muted mx-auto mb-2" />
                     <p className="font-mono text-sm text-terminal-text-muted">
-                      Click "Load" to fetch available users
+                      Click &quot;Load&quot; to fetch available users
                     </p>
                   </div>
                 ) : (
