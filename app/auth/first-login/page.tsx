@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Terminal,
@@ -29,34 +29,59 @@ export default function FirstLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement>(null);
 
   // Turnstile callbacks
   const handleTurnstileSuccess = (token: string) => {
-    console.log("First login Turnstile success, token received");
     setTurnstileToken(token);
   };
 
   const handleTurnstileError = () => {
-    console.log("First login Turnstile error");
     setTurnstileToken(null);
   };
 
   const handleTurnstileExpired = () => {
-    console.log("First login Turnstile expired");
     setTurnstileToken(null);
   };
 
   // Expose callbacks to window for Turnstile
   useEffect(() => {
-    console.log("Setting up first login Turnstile callbacks");
-    (window as any).handleFirstLoginTurnstileSuccess = handleTurnstileSuccess;
-    (window as any).handleFirstLoginTurnstileError = handleTurnstileError;
-    (window as any).handleFirstLoginTurnstileExpired = handleTurnstileExpired;
+    let widgetId: string | null = null;
+
+    const initTurnstile = () => {
+      if ((window as any).turnstile && turnstileRef.current) {
+        widgetId = (window as any).turnstile.render(turnstileRef.current, {
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+          callback: handleTurnstileSuccess,
+          "error-callback": handleTurnstileError,
+          "expired-callback": handleTurnstileExpired,
+          theme: "dark",
+        });
+      }
+    };
+
+    // Check if Turnstile is already loaded
+    if ((window as any).turnstile) {
+      initTurnstile();
+    } else {
+      // Wait for Turnstile to load
+      const checkTurnstile = setInterval(() => {
+        if ((window as any).turnstile) {
+          clearInterval(checkTurnstile);
+          initTurnstile();
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkTurnstile);
+      }, 10000);
+    }
 
     return () => {
-      delete (window as any).handleFirstLoginTurnstileSuccess;
-      delete (window as any).handleFirstLoginTurnstileError;
-      delete (window as any).handleFirstLoginTurnstileExpired;
+      if (widgetId && (window as any).turnstile) {
+        (window as any).turnstile.remove(widgetId);
+      }
     };
   }, []);
 
@@ -233,19 +258,7 @@ export default function FirstLoginPage() {
 
               {/* Turnstile CAPTCHA */}
               <div className="space-y-2">
-                <div
-                  className="cf-turnstile"
-                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  data-callback="handleFirstLoginTurnstileSuccess"
-                  data-error-callback="handleFirstLoginTurnstileError"
-                  data-expired-callback="handleFirstLoginTurnstileExpired"
-                  data-theme="dark"
-                />
-                {/* Debug info */}
-                <div className="text-xs font-mono text-terminal-text-muted">
-                  CAPTCHA Status:{" "}
-                  {turnstileToken ? "✅ Completed" : "⏳ Pending"}
-                </div>
+                <div ref={turnstileRef} />
               </div>
 
               {/* Submit */}

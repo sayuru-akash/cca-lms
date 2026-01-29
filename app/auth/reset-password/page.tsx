@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Terminal,
@@ -45,58 +45,97 @@ export default function ResetPasswordPage() {
   const [resetTurnstileToken, setResetTurnstileToken] = useState<string | null>(
     null,
   );
+  const resetTurnstileRef = useRef<HTMLDivElement>(null);
+  const requestTurnstileRef = useRef<HTMLDivElement>(null);
 
   // Turnstile callbacks for reset password
   const handleResetTurnstileSuccess = (token: string) => {
-    console.log("Reset password Turnstile success, token received");
     setResetTurnstileToken(token);
   };
 
   const handleResetTurnstileError = () => {
-    console.log("Reset password Turnstile error");
     setResetTurnstileToken(null);
   };
 
   const handleResetTurnstileExpired = () => {
-    console.log("Reset password Turnstile expired");
     setResetTurnstileToken(null);
   };
 
   // Turnstile callbacks for request reset
   const handleRequestTurnstileSuccess = (token: string) => {
-    console.log("Request reset Turnstile success, token received");
     setRequestTurnstileToken(token);
   };
 
   const handleRequestTurnstileError = () => {
-    console.log("Request reset Turnstile error");
     setRequestTurnstileToken(null);
   };
 
   const handleRequestTurnstileExpired = () => {
-    console.log("Request reset Turnstile expired");
     setRequestTurnstileToken(null);
   };
 
   // Expose callbacks to window for Turnstile
   useEffect(() => {
-    console.log("Setting up reset password Turnstile callbacks");
-    (window as any).handleResetTurnstileSuccess = handleResetTurnstileSuccess;
-    (window as any).handleResetTurnstileError = handleResetTurnstileError;
-    (window as any).handleResetTurnstileExpired = handleResetTurnstileExpired;
-    (window as any).handleRequestTurnstileSuccess =
-      handleRequestTurnstileSuccess;
-    (window as any).handleRequestTurnstileError = handleRequestTurnstileError;
-    (window as any).handleRequestTurnstileExpired =
-      handleRequestTurnstileExpired;
+    let resetWidgetId: string | null = null;
+    let requestWidgetId: string | null = null;
+
+    const initTurnstile = () => {
+      if ((window as any).turnstile) {
+        // Initialize reset password widget
+        if (resetTurnstileRef.current) {
+          resetWidgetId = (window as any).turnstile.render(
+            resetTurnstileRef.current,
+            {
+              sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+              callback: handleResetTurnstileSuccess,
+              "error-callback": handleResetTurnstileError,
+              "expired-callback": handleResetTurnstileExpired,
+              theme: "dark",
+            },
+          );
+        }
+
+        // Initialize request reset widget
+        if (requestTurnstileRef.current) {
+          requestWidgetId = (window as any).turnstile.render(
+            requestTurnstileRef.current,
+            {
+              sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+              callback: handleRequestTurnstileSuccess,
+              "error-callback": handleRequestTurnstileError,
+              "expired-callback": handleRequestTurnstileExpired,
+              theme: "dark",
+            },
+          );
+        }
+      }
+    };
+
+    // Check if Turnstile is already loaded
+    if ((window as any).turnstile) {
+      initTurnstile();
+    } else {
+      // Wait for Turnstile to load
+      const checkTurnstile = setInterval(() => {
+        if ((window as any).turnstile) {
+          clearInterval(checkTurnstile);
+          initTurnstile();
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkTurnstile);
+      }, 10000);
+    }
 
     return () => {
-      delete (window as any).handleResetTurnstileSuccess;
-      delete (window as any).handleResetTurnstileError;
-      delete (window as any).handleResetTurnstileExpired;
-      delete (window as any).handleRequestTurnstileSuccess;
-      delete (window as any).handleRequestTurnstileError;
-      delete (window as any).handleRequestTurnstileExpired;
+      if (resetWidgetId && (window as any).turnstile) {
+        (window as any).turnstile.remove(resetWidgetId);
+      }
+      if (requestWidgetId && (window as any).turnstile) {
+        (window as any).turnstile.remove(requestWidgetId);
+      }
     };
   }, []);
 
@@ -318,19 +357,7 @@ export default function ResetPasswordPage() {
 
                 {/* Turnstile CAPTCHA */}
                 <div className="space-y-2">
-                  <div
-                    className="cf-turnstile"
-                    data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    data-callback="handleResetTurnstileSuccess"
-                    data-error-callback="handleResetTurnstileError"
-                    data-expired-callback="handleResetTurnstileExpired"
-                    data-theme="dark"
-                  />
-                  {/* Debug info */}
-                  <div className="text-xs font-mono text-terminal-text-muted">
-                    CAPTCHA Status:{" "}
-                    {resetTurnstileToken ? "✅ Completed" : "⏳ Pending"}
-                  </div>
+                  <div ref={resetTurnstileRef} />
                 </div>
 
                 <div className="space-y-2">
@@ -438,19 +465,7 @@ export default function ResetPasswordPage() {
 
                   {/* Turnstile CAPTCHA */}
                   <div className="space-y-2">
-                    <div
-                      className="cf-turnstile"
-                      data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                      data-callback="handleRequestTurnstileSuccess"
-                      data-error-callback="handleRequestTurnstileError"
-                      data-expired-callback="handleRequestTurnstileExpired"
-                      data-theme="dark"
-                    />
-                    {/* Debug info */}
-                    <div className="text-xs font-mono text-terminal-text-muted">
-                      CAPTCHA Status:{" "}
-                      {requestTurnstileToken ? "✅ Completed" : "⏳ Pending"}
-                    </div>
+                    <div ref={requestTurnstileRef} />
                   </div>
 
                   <div className="space-y-2">

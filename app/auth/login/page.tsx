@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Terminal,
   Lock,
@@ -32,50 +32,59 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement>(null);
 
   // Turnstile callbacks
   const handleTurnstileSuccess = (token: string) => {
-    console.log("Turnstile success, token received");
     setTurnstileToken(token);
   };
 
   const handleTurnstileError = () => {
-    console.log("Turnstile error");
     setTurnstileToken(null);
   };
 
   const handleTurnstileExpired = () => {
-    console.log("Turnstile expired");
     setTurnstileToken(null);
   };
 
-  // Expose callbacks to window for Turnstile
+  // Initialize Turnstile widget
   useEffect(() => {
-    console.log(
-      "Setting up Turnstile callbacks, site key:",
-      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
-    );
-    (window as any).handleTurnstileSuccess = handleTurnstileSuccess;
-    (window as any).handleTurnstileError = handleTurnstileError;
-    (window as any).handleTurnstileExpired = handleTurnstileExpired;
+    let widgetId: string | null = null;
 
-    // Check if Turnstile is loaded
-    const checkTurnstile = () => {
-      if ((window as any).turnstile) {
-        console.log("Turnstile script loaded successfully");
-      } else {
-        console.log("Turnstile script not loaded yet");
+    const initTurnstile = () => {
+      if ((window as any).turnstile && turnstileRef.current) {
+        widgetId = (window as any).turnstile.render(turnstileRef.current, {
+          sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+          callback: handleTurnstileSuccess,
+          "error-callback": handleTurnstileError,
+          "expired-callback": handleTurnstileExpired,
+          theme: "dark",
+        });
       }
     };
 
-    checkTurnstile();
-    const timeout = setTimeout(checkTurnstile, 2000);
+    // Check if Turnstile is already loaded
+    if ((window as any).turnstile) {
+      initTurnstile();
+    } else {
+      // Wait for Turnstile to load
+      const checkTurnstile = setInterval(() => {
+        if ((window as any).turnstile) {
+          clearInterval(checkTurnstile);
+          initTurnstile();
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkTurnstile);
+      }, 10000);
+    }
 
     return () => {
-      delete (window as any).handleTurnstileSuccess;
-      delete (window as any).handleTurnstileError;
-      delete (window as any).handleTurnstileExpired;
-      clearTimeout(timeout);
+      if (widgetId && (window as any).turnstile) {
+        (window as any).turnstile.remove(widgetId);
+      }
     };
   }, []);
 
@@ -231,19 +240,7 @@ export default function LoginPage() {
 
               {/* Turnstile CAPTCHA */}
               <div className="space-y-2">
-                <div
-                  className="cf-turnstile"
-                  data-sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  data-callback="handleTurnstileSuccess"
-                  data-error-callback="handleTurnstileError"
-                  data-expired-callback="handleTurnstileExpired"
-                  data-theme="dark"
-                />
-                {/* Debug info */}
-                <div className="text-xs font-mono text-terminal-text-muted">
-                  CAPTCHA Status:{" "}
-                  {turnstileToken ? "✅ Completed" : "⏳ Pending"}
-                </div>
+                <div ref={turnstileRef} />
               </div>
 
               {/* Submit Button */}
@@ -251,9 +248,6 @@ export default function LoginPage() {
                 type="submit"
                 className="w-full gap-2"
                 disabled={isLoading || !turnstileToken}
-                onClick={() =>
-                  console.log("Button clicked, token:", turnstileToken)
-                }
               >
                 {isLoading ? (
                   <>
