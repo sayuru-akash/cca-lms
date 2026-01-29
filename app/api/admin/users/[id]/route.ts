@@ -31,6 +31,7 @@ export async function GET(
         _count: {
           select: {
             courses: true,
+            lecturerCourses: true,
             submissions: true,
           },
         },
@@ -41,7 +42,21 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ user });
+    // Combine counts for lecturers
+    const coursesCount =
+      user.role === "LECTURER"
+        ? user._count.courses + user._count.lecturerCourses
+        : user._count.courses;
+
+    return NextResponse.json({
+      user: {
+        ...user,
+        _count: {
+          courses: coursesCount,
+          submissions: user._count.submissions,
+        },
+      },
+    });
   } catch (error) {
     console.error("Error fetching user:", error);
     return NextResponse.json(

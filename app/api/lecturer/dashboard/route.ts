@@ -12,10 +12,21 @@ export async function GET() {
 
     const lecturerId = session.user.id;
 
-    // Get lecturer's courses
+    // Get lecturer's courses from both old and new relationships
     const courses = await prisma.course.findMany({
       where: {
-        lecturerId,
+        OR: [
+          {
+            lecturers: {
+              some: {
+                lecturerId,
+              },
+            },
+          },
+          {
+            lecturerId, // Backward compatibility
+          },
+        ],
       },
       include: {
         _count: {
@@ -37,7 +48,18 @@ export async function GET() {
     const totalStudents = await prisma.courseEnrollment.count({
       where: {
         course: {
-          lecturerId,
+          OR: [
+            {
+              lecturers: {
+                some: {
+                  lecturerId,
+                },
+              },
+            },
+            {
+              lecturerId, // Backward compatibility
+            },
+          ],
         },
         status: {
           in: ["ACTIVE", "COMPLETED"],
@@ -52,7 +74,18 @@ export async function GET() {
     const totalModules = await prisma.module.count({
       where: {
         course: {
-          lecturerId,
+          OR: [
+            {
+              lecturers: {
+                some: {
+                  lecturerId,
+                },
+              },
+            },
+            {
+              lecturerId, // Backward compatibility
+            },
+          ],
         },
       },
     });
@@ -61,7 +94,18 @@ export async function GET() {
     const recentEnrollments = await prisma.courseEnrollment.findMany({
       where: {
         course: {
-          lecturerId,
+          OR: [
+            {
+              lecturers: {
+                some: {
+                  lecturerId,
+                },
+              },
+            },
+            {
+              lecturerId, // Backward compatibility
+            },
+          ],
         },
         user: {
           role: "STUDENT",

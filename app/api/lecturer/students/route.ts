@@ -12,11 +12,22 @@ export async function GET() {
 
     const lecturerId = session.user.id;
 
-    // Get all students enrolled in lecturer's courses
+    // Get all students enrolled in lecturer's courses (both old and new relationships)
     const enrollments = await prisma.courseEnrollment.findMany({
       where: {
         course: {
-          lecturerId,
+          OR: [
+            {
+              lecturers: {
+                some: {
+                  lecturerId,
+                },
+              },
+            },
+            {
+              lecturerId, // Backward compatibility
+            },
+          ],
         },
         user: {
           role: "STUDENT", // Only include users with STUDENT role

@@ -56,7 +56,8 @@ export async function GET(request: Request) {
           updatedAt: true,
           _count: {
             select: {
-              courses: true,
+              courses: true, // CourseEnrollment for students
+              lecturerCourses: true, // CourseLecturer for lecturers
             },
           },
         },
@@ -67,8 +68,19 @@ export async function GET(request: Request) {
       prisma.user.count({ where }),
     ]);
 
+    // Combine counts for lecturers (they can have both CourseEnrollment and CourseLecturer)
+    const usersWithCorrectCount = users.map((user) => ({
+      ...user,
+      _count: {
+        courses:
+          user.role === "LECTURER"
+            ? user._count.courses + user._count.lecturerCourses
+            : user._count.courses,
+      },
+    }));
+
     return NextResponse.json({
-      users,
+      users: usersWithCorrectCount,
       pagination: {
         total,
         page,

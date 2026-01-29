@@ -26,6 +26,7 @@ export async function GET() {
         _count: {
           select: {
             courses: true,
+            lecturerCourses: true,
           },
         },
       },
@@ -34,6 +35,12 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    // Combine counts for proper display
+    const coursesCount =
+      user.role === "LECTURER"
+        ? user._count.courses + user._count.lecturerCourses
+        : user._count.courses;
 
     // Get enrollment stats for students only
     let stats = null;
@@ -96,7 +103,22 @@ export async function GET() {
     } else if (user.role === "ADMIN" || user.role === "LECTURER") {
       // Get admin/lecturer specific stats
       const whereClause =
-        user.role === "LECTURER" ? { lecturerId: user.id } : {};
+        user.role === "LECTURER"
+          ? {
+              OR: [
+                {
+                  lecturers: {
+                    some: {
+                      lecturerId: user.id,
+                    },
+                  },
+                },
+                {
+                  lecturerId: user.id, // Backward compatibility
+                },
+              ],
+            }
+          : {};
 
       const courses = await prisma.course.findMany({
         where: whereClause,
@@ -130,7 +152,18 @@ export async function GET() {
                 courses: {
                   some: {
                     course: {
-                      lecturerId: user.id,
+                      OR: [
+                        {
+                          lecturers: {
+                            some: {
+                              lecturerId: user.id,
+                            },
+                          },
+                        },
+                        {
+                          lecturerId: user.id, // Backward compatibility
+                        },
+                      ],
                     },
                   },
                 },
@@ -177,6 +210,7 @@ export async function GET() {
         role: user.role,
         image: user.image,
         createdAt: user.createdAt.toISOString(),
+        coursesCount,
       },
       stats,
     });
