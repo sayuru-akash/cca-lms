@@ -55,7 +55,7 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
       const error = rejection.errors[0];
 
       if (error.code === "file-too-large") {
-        toast.error("File is too large. Maximum file size is 20MB.");
+        toast.error("File is too large. Maximum file size is 5MB.");
       } else if (error.code === "file-invalid-type") {
         toast.error("Invalid file type. Please select a valid file.");
       } else {
@@ -68,7 +68,7 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
     onDrop,
     onDropRejected,
     multiple: false,
-    maxSize: 20 * 1024 * 1024, // 20MB
+    maxSize: 5 * 1024 * 1024, // 5MB
   });
 
   const removeFile = () => {
@@ -145,7 +145,8 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
       setUploadProgress(100);
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
       }
 
       const resource = await response.json();
@@ -196,7 +197,7 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
                   : "Drag & drop a file here, or click to select"}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Maximum file size: 20MB
+                Maximum file size: 5MB
               </p>
             </div>
           ) : (

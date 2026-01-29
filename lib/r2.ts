@@ -182,7 +182,7 @@ export function extractFileMetadata(file: File) {
  */
 export function validateFile(
   file: File,
-  allowedTypes: string[],
+  allowedTypes: readonly string[],
   maxSizeMB: number,
 ): { valid: boolean; error?: string } {
   // Check file type
@@ -209,11 +209,11 @@ export function validateFile(
 export const FILE_VALIDATIONS = {
   image: {
     allowedTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-    maxSizeMB: 20,
+    maxSizeMB: 5,
   },
   video: {
     allowedTypes: ["video/mp4", "video/webm", "video/quicktime"],
-    maxSizeMB: 20,
+    maxSizeMB: 5,
   },
   document: {
     allowedTypes: [
@@ -225,7 +225,7 @@ export const FILE_VALIDATIONS = {
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     ],
-    maxSizeMB: 20,
+    maxSizeMB: 5,
   },
   submission: {
     allowedTypes: [
@@ -234,6 +234,6 @@ export const FILE_VALIDATIONS = {
       "image/jpeg",
       "image/png",
     ],
-    maxSizeMB: 20,
+    maxSizeMB: 5,
   },
 } as const;

@@ -30,6 +30,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check file size (max 5MB for CSV)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: "File too large. Maximum size: 5MB" },
+        { status: 400 },
+      );
+    }
+
     // Read CSV file
     const text = await file.text();
     const lines = text

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { uploadToR2, getSignedUrl, deleteFromR2 } from "@/lib/r2";
+import {
+  uploadToR2,
+  getSignedUrl,
+  deleteFromR2,
+  validateFile,
+  FILE_VALIDATIONS,
+} from "@/lib/r2";
 import { createAuditLog } from "@/lib/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -108,6 +114,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     // Handle file upload for new version
     if (file && createNewVersion) {
+      // Validate file size and type
+      const validation = validateFile(
+        file,
+        FILE_VALIDATIONS.document.allowedTypes,
+        FILE_VALIDATIONS.document.maxSizeMB,
+      );
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error }, { status: 400 });
+      }
+
       const buffer = Buffer.from(await file.arrayBuffer());
       const uploadResult = await uploadToR2(buffer, file.name, file.type);
 
