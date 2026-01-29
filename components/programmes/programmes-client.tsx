@@ -292,25 +292,35 @@ export default function ProgrammesClient() {
   };
 
   const handleArchiveProgramme = async (programme: Programme) => {
-    if (!confirm(`Are you sure you want to archive "${programme.title}"?`)) {
+    const isArchiving = programme.status !== "ARCHIVED";
+    const action = isArchiving ? "archive" : "unarchive";
+    const newStatus = isArchiving ? "ARCHIVED" : "PUBLISHED";
+
+    if (!confirm(`Are you sure you want to ${action} "${programme.title}"?`)) {
       return;
     }
 
     try {
       const response = await fetch(`/api/admin/programmes/${programme.id}`, {
-        method: "DELETE",
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to archive programme");
+        throw new Error(data.error || `Failed to ${action} programme`);
       }
 
       fetchProgrammes();
     } catch (error) {
-      console.error("Error archiving programme:", error);
+      console.error(`Error ${action}ing programme:`, error);
       alert(
-        error instanceof Error ? error.message : "Failed to archive programme",
+        error instanceof Error
+          ? error.message
+          : `Failed to ${action} programme`,
       );
     }
   };
@@ -717,6 +727,12 @@ export default function ProgrammesClient() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleEditProgramme(programme)}
+                              disabled={programme.status === "ARCHIVED"}
+                              className={
+                                programme.status === "ARCHIVED"
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Programme
@@ -725,6 +741,12 @@ export default function ProgrammesClient() {
                               onClick={() =>
                                 router.push(`/programmes/${programme.id}`)
                               }
+                              disabled={programme.status === "ARCHIVED"}
+                              className={
+                                programme.status === "ARCHIVED"
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }
                             >
                               <FolderTree className="h-4 w-4 mr-2" />
                               Manage Content
@@ -732,10 +754,16 @@ export default function ProgrammesClient() {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleArchiveProgramme(programme)}
-                              className="text-destructive"
+                              className={
+                                programme.status === "ARCHIVED"
+                                  ? "text-green-600"
+                                  : "text-destructive"
+                              }
                             >
                               <Archive className="h-4 w-4 mr-2" />
-                              Archive
+                              {programme.status === "ARCHIVED"
+                                ? "Unarchive"
+                                : "Archive"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
