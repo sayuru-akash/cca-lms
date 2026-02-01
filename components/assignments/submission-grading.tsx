@@ -47,9 +47,10 @@ export function SubmissionGrading({
         throw new Error(data.error || "Failed to fetch submission");
       }
 
-      setSubmission(data);
-      setGrade(data.grade !== null ? data.grade.toString() : "");
-      setFeedback(data.feedback || "");
+      const sub = data.submission;
+      setSubmission(sub);
+      setGrade(sub.grade !== null ? sub.grade.toString() : "");
+      setFeedback(sub.feedback || "");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to load submission";
@@ -151,9 +152,7 @@ export function SubmissionGrading({
             <div className="flex items-center gap-4 mt-2 text-sm text-terminal-text-muted">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                <span>
-                  {submission.student.firstName} {submission.student.lastName}
-                </span>
+                <span>{submission.user?.name || "Unknown Student"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
