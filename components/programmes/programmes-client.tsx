@@ -1286,7 +1286,7 @@ export default function ProgrammesClient() {
                             </span>
                             {enrollment.user.role === "STUDENT" && (
                               <span className="text-terminal-green">
-                                {Math.round(enrollment.progress)}% complete
+                                {Math.round(enrollment.progress || 0)}% complete
                               </span>
                             )}
                           </div>

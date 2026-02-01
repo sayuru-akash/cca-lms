@@ -63,6 +63,7 @@ export async function GET(
       userId: assignment.lecturerId,
       courseId: assignment.courseId,
       enrolledAt: assignment.assignedAt,
+      progress: null, // Lecturers don't have progress
       user: assignment.lecturer,
       status: "ACTIVE",
     }));
@@ -72,6 +73,7 @@ export async function GET(
       userId: enrollment.userId,
       courseId: enrollment.courseId,
       enrolledAt: enrollment.enrolledAt,
+      progress: enrollment.progress, // Add the missing progress field
       user: enrollment.user,
       status: enrollment.status,
     }));

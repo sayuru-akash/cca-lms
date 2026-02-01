@@ -1309,7 +1309,7 @@ export default function UsersClient() {
                             </span>
                             {viewingUser.role === "STUDENT" && (
                               <span className="text-terminal-green">
-                                {Math.round(enrollment.progress)}% complete
+                                {Math.round(enrollment.progress || 0)}% complete
                               </span>
                             )}
                           </div>
