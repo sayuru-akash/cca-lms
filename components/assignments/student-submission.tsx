@@ -31,6 +31,8 @@ export function StudentSubmission({ assignmentId }: StudentSubmissionProps) {
   const [files, setFiles] = useState<File[]>([]);
   const [notes, setNotes] = useState("");
   const [enrollmentError, setEnrollmentError] = useState(false);
+  const [serverCanSubmit, setServerCanSubmit] = useState(true);
+  const [serverIsOverdue, setServerIsOverdue] = useState(false);
 
   const fetchAssignmentAndSubmission = async () => {
     setIsLoading(true);
@@ -47,6 +49,8 @@ export function StudentSubmission({ assignmentId }: StudentSubmissionProps) {
 
       setAssignment(data.assignment);
       setSubmission(data.submission);
+      setServerCanSubmit(data.canSubmit);
+      setServerIsOverdue(data.isOverdue);
       setNotes(data.submission?.notes || "");
       setEnrollmentError(false);
     } catch (error) {
@@ -209,9 +213,8 @@ export function StudentSubmission({ assignmentId }: StudentSubmissionProps) {
   }
 
   const dueDate = new Date(assignment.dueDate);
-  const isOverdue = assignment.isOverdue; // Use server-calculated value
-  // Use server's canSubmit directly - it already accounts for late submission policy
-  const canSubmit = assignment.canSubmit;
+  const isOverdue = serverIsOverdue; // Use server-calculated value from API response root
+  const canSubmit = serverCanSubmit; // Use server's canSubmit from API response root
   const canDownload = submission && !isOverdue;
 
   return (
