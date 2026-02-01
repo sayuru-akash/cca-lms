@@ -247,6 +247,19 @@ export const auditActions = {
       metadata: { status: "ARCHIVED" },
     }),
 
+  programmeDeleted: (
+    userId: string,
+    programmeId: string,
+    programmeTitle: string,
+  ) =>
+    createAuditLog({
+      userId,
+      action: "COURSE_DELETED",
+      entityType: "Course",
+      entityId: programmeId,
+      metadata: { title: programmeTitle, permanent: true },
+    }),
+
   programmePublished: (userId: string, programmeId: string) =>
     createAuditLog({
       userId,

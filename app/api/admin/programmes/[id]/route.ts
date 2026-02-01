@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { auditActions } from "@/lib/audit";
+import { deleteFromR2 } from "@/lib/r2";
+import { deleteFromB2 } from "@/lib/b2";
 
 // GET /api/admin/programmes/[id] - Get single programme
 export async function GET(
@@ -239,7 +241,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/admin/programmes/[id] - Archive programme (soft delete)
+// DELETE /api/admin/programmes/[id] - Archive programme (soft delete) or permanent delete
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -253,10 +255,20 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const forceDelete = searchParams.get("force") === "true";
 
     // Check if programme exists
     const existingProgramme = await prisma.course.findUnique({
       where: { id },
+      include: {
+        _count: {
+          select: {
+            enrollments: true,
+            modules: true,
+          },
+        },
+      },
     });
 
     if (!existingProgramme) {
@@ -266,7 +278,147 @@ export async function DELETE(
       );
     }
 
-    // Archive the programme (soft delete)
+    // Force delete - permanent deletion with file cleanup
+    if (forceDelete) {
+      // Only allow permanent delete for archived programmes
+      if (existingProgramme.status !== "ARCHIVED") {
+        return NextResponse.json(
+          {
+            error:
+              "Only archived programmes can be permanently deleted. Archive it first.",
+          },
+          { status: 400 },
+        );
+      }
+
+      // Collect all files to delete before deleting the programme
+      // 1. Get all R2 files (LessonResource) - only those with fileKey
+      const lessonResources = await prisma.lessonResource.findMany({
+        where: {
+          lesson: {
+            module: {
+              courseId: id,
+            },
+          },
+          fileKey: { not: null },
+        },
+        select: {
+          fileKey: true,
+        },
+      });
+
+      // 2. Get all B2 files (AssignmentSubmissionAttachment)
+      const submissionFiles =
+        await prisma.assignmentSubmissionAttachment.findMany({
+          where: {
+            submission: {
+              assignment: {
+                lesson: {
+                  module: {
+                    courseId: id,
+                  },
+                },
+              },
+            },
+          },
+          select: {
+            fileKey: true,
+            fileId: true,
+          },
+        });
+
+      // 3. Get legacy R2 submission attachments (SubmissionAttachment)
+      const legacySubmissionFiles = await prisma.submissionAttachment.findMany({
+        where: {
+          submission: {
+            lesson: {
+              module: {
+                courseId: id,
+              },
+            },
+          },
+        },
+        select: {
+          fileKey: true,
+        },
+      });
+
+      // Log what we're about to delete
+      console.log(
+        `Force deleting programme ${id}: ` +
+          `${lessonResources.length} R2 resource files, ` +
+          `${submissionFiles.length} B2 submission files, ` +
+          `${legacySubmissionFiles.length} legacy R2 submission files`,
+      );
+
+      // Delete the programme - cascade will delete all related records
+      await prisma.course.delete({
+        where: { id },
+      });
+
+      // Clean up R2 files (lesson resources)
+      const r2Errors: string[] = [];
+      for (const resource of lessonResources) {
+        if (!resource.fileKey) continue; // Skip if no fileKey
+        try {
+          await deleteFromR2(resource.fileKey);
+        } catch (err) {
+          console.error(`Failed to delete R2 file ${resource.fileKey}:`, err);
+          r2Errors.push(resource.fileKey);
+        }
+      }
+
+      // Clean up legacy R2 files (old submission attachments)
+      for (const file of legacySubmissionFiles) {
+        try {
+          await deleteFromR2(file.fileKey);
+        } catch (err) {
+          console.error(
+            `Failed to delete legacy R2 file ${file.fileKey}:`,
+            err,
+          );
+          r2Errors.push(file.fileKey);
+        }
+      }
+
+      // Clean up B2 files (submission files)
+      const b2Errors: string[] = [];
+      for (const file of submissionFiles) {
+        try {
+          await deleteFromB2(file.fileKey, file.fileId);
+        } catch (err) {
+          console.error(`Failed to delete B2 file ${file.fileKey}:`, err);
+          b2Errors.push(file.fileKey);
+        }
+      }
+
+      // Audit log for permanent deletion
+      await auditActions.programmeDeleted(
+        session.user.id,
+        existingProgramme.id,
+        existingProgramme.title,
+      );
+
+      const hasFileErrors = r2Errors.length > 0 || b2Errors.length > 0;
+      const totalR2 = lessonResources.length + legacySubmissionFiles.length;
+
+      return NextResponse.json({
+        message: "Programme permanently deleted",
+        filesDeleted: {
+          r2: totalR2 - r2Errors.length,
+          b2: submissionFiles.length - b2Errors.length,
+        },
+        ...(hasFileErrors && {
+          warning: "Some files could not be deleted from storage",
+          failedFiles: {
+            r2: r2Errors,
+            b2: b2Errors,
+          },
+        }),
+      });
+    }
+
+    // Soft delete - archive the programme
     const programme = await prisma.course.update({
       where: { id },
       data: { status: "ARCHIVED" },
@@ -279,9 +431,9 @@ export async function DELETE(
       message: "Programme archived successfully",
     });
   } catch (error) {
-    console.error("Error archiving programme:", error);
+    console.error("Error deleting programme:", error);
     return NextResponse.json(
-      { error: "Failed to archive programme" },
+      { error: "Failed to delete programme" },
       { status: 500 },
     );
   }

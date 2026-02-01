@@ -74,6 +74,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null; // Return null for invalid password
           }
 
+          if (user.status === "DELETED") {
+            throw new Error("This account has been deleted");
+          }
+
           if (user.status !== "ACTIVE") {
             throw new Error("Account is not active"); // Keep this as an error since it's a specific account status issue
           }
@@ -92,7 +96,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Only throw specific account status errors, return null for credential issues
           if (
             error instanceof Error &&
-            error.message === "Account is not active"
+            (error.message === "Account is not active" ||
+              error.message === "This account has been deleted")
           ) {
             throw error;
           }

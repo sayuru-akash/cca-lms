@@ -340,6 +340,63 @@ export default function ProgrammesClient() {
     }
   };
 
+  const handlePermanentlyDeleteProgramme = async (programme: Programme) => {
+    // Only allow permanent delete of archived programmes
+    if (programme.status !== "ARCHIVED") {
+      toast.error("Cannot delete", {
+        description:
+          "Only archived programmes can be permanently deleted. Archive it first.",
+      });
+      return;
+    }
+
+    const confirmed = await confirm({
+      title: "Permanently Delete Programme",
+      description: `This will PERMANENTLY delete "${programme.title}" and ALL its content. This action cannot be undone!`,
+      variant: "danger",
+      confirmText: "Delete Forever",
+      requireTypedConfirmation: "DELETE",
+      details: [
+        `Programme: ${programme.title}`,
+        `Enrolled students: ${programme._count?.enrollments || 0}`,
+        `Modules: ${programme._count?.modules || 0}`,
+        "All modules and lessons will be deleted",
+        "All quizzes and student attempts will be deleted",
+        "All assignments and submissions will be deleted",
+        "All uploaded files will be removed from storage",
+        "Student enrollment records will be removed",
+      ],
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(
+        `/api/admin/programmes/${programme.id}?force=true`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete programme");
+      }
+
+      toast.success("Programme deleted", {
+        description: `"${programme.title}" and all content have been permanently deleted`,
+      });
+      fetchProgrammes();
+    } catch (error) {
+      console.error("Error deleting programme:", error);
+      toast.error("Delete Failed", {
+        description:
+          error instanceof Error ? error.message : "Failed to delete programme",
+      });
+    }
+  };
+
   const handleViewEnrollments = (programme: Programme) => {
     setEnrollmentsProgramme(programme);
     setEnrollmentRoleFilter("all");
@@ -806,6 +863,17 @@ export default function ProgrammesClient() {
                                 ? "Unarchive"
                                 : "Archive"}
                             </DropdownMenuItem>
+                            {programme.status === "ARCHIVED" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handlePermanentlyDeleteProgramme(programme)
+                                }
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Permanently
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

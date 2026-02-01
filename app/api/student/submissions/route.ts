@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
 
     await createAuditLog({
       userId: session.user.id,
-      action: "SUBMISSION_CREATED",
+      action: "ASSIGNMENT_SUBMITTED",
       entityType: "AssignmentSubmission",
       entityId: submission.id,
       metadata: {

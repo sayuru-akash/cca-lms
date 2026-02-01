@@ -234,7 +234,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     await createAuditLog({
       userId: session.user.id,
-      action: "SUBMISSION_GRADED",
+      action: "ASSIGNMENT_GRADED",
       entityType: "AssignmentSubmission",
       entityId: updatedSubmission.id,
       metadata: {
