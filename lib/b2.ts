@@ -13,6 +13,35 @@ const B2_BUCKET_ID = process.env.B2_BUCKET_ID!;
 const B2_BUCKET_NAME =
   process.env.B2_BUCKET_NAME || "cca-lms-student-submissions";
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000; // Initial delay, doubles with each retry
+
+/**
+ * Retry a function with exponential backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = MAX_RETRIES,
+  delay: number = RETRY_DELAY_MS,
+  attemptNumber: number = 1,
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (retries === 0) {
+      throw error;
+    }
+
+    console.warn(
+      `Attempt ${attemptNumber} failed, retrying in ${delay}ms... (${retries} retries left)`,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 2, attemptNumber + 1);
+  }
+}
+
 // B2 API endpoints
 const B2_API_URL = "https://api.backblazeb2.com";
 
@@ -55,8 +84,14 @@ async function getAuthToken(): Promise<{
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`B2 authorization failed: ${error}`);
+    let errorMessage = `B2 authorization failed (${response.status})`;
+    try {
+      const errorData = await response.json();
+      errorMessage = `B2 authorization failed: ${errorData.message || errorData.code || response.statusText}`;
+    } catch {
+      errorMessage = `B2 authorization failed: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
@@ -129,60 +164,107 @@ export async function uploadToB2(
   contentLength: number;
   contentSha1: string;
 }> {
-  try {
-    // Generate unique file key with timestamp and random string
-    const timestamp = Date.now();
-    const randomStr = crypto.randomBytes(8).toString("hex");
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const fileKey = `submissions/${timestamp}-${randomStr}-${sanitizedFileName}`;
-
-    // Calculate SHA1 hash (required by B2)
-    const sha1 = crypto.createHash("sha1").update(buffer).digest("hex");
-
-    // Get upload URL and token
-    const { uploadUrl, authToken } = await getUploadUrl();
-
-    // Prepare headers
-    const headers: Record<string, string> = {
-      Authorization: authToken,
-      "Content-Type": contentType,
-      "Content-Length": buffer.length.toString(),
-      "X-Bz-File-Name": encodeURIComponent(fileKey),
-      "X-Bz-Content-Sha1": sha1,
-    };
-
-    // Add metadata as custom headers
-    if (metadata) {
-      Object.entries(metadata).forEach(([key, value]) => {
-        headers[`X-Bz-Info-${key}`] = encodeURIComponent(value);
-      });
-    }
-
-    // Upload file
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers,
-      body: buffer as unknown as BodyInit,
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`B2 upload failed: ${error}`);
-    }
-
-    const data = await response.json();
-
-    return {
-      fileKey: data.fileName,
-      fileName: fileName,
-      fileId: data.fileId,
-      contentLength: data.contentLength,
-      contentSha1: data.contentSha1,
-    };
-  } catch (error) {
-    console.error("Error uploading to B2:", error);
-    throw error;
+  // Validate file size (B2 max is 5GB for single upload)
+  const maxSize = 5 * 1024 * 1024 * 1024; // 5GB
+  if (buffer.length > maxSize) {
+    throw new Error(
+      `File "${fileName}" exceeds maximum size of 5GB (${(buffer.length / (1024 * 1024 * 1024)).toFixed(2)}GB)`,
+    );
   }
+
+  if (buffer.length === 0) {
+    throw new Error(`File "${fileName}" is empty`);
+  }
+
+  // Generate unique file key with timestamp and random string
+  const timestamp = Date.now();
+  const randomStr = crypto.randomBytes(8).toString("hex");
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const fileKey = `submissions/${timestamp}-${randomStr}-${sanitizedFileName}`;
+
+  // Calculate SHA1 hash (required by B2)
+  const sha1 = crypto.createHash("sha1").update(buffer).digest("hex");
+
+  // Upload with retry mechanism
+  return retryWithBackoff(async () => {
+    try {
+      // Get upload URL and token
+      const { uploadUrl, authToken } = await getUploadUrl();
+
+      // Prepare headers
+      const headers: Record<string, string> = {
+        Authorization: authToken,
+        "Content-Type": contentType,
+        "Content-Length": buffer.length.toString(),
+        "X-Bz-File-Name": encodeURIComponent(fileKey),
+        "X-Bz-Content-Sha1": sha1,
+      };
+
+      // Add metadata as custom headers
+      if (metadata) {
+        Object.entries(metadata).forEach(([key, value]) => {
+          headers[`X-Bz-Info-${key}`] = encodeURIComponent(value);
+        });
+      }
+
+      // Upload file
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers,
+        body: buffer as unknown as BodyInit,
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Upload failed for "${fileName}" (${response.status})`;
+        try {
+          const errorData = await response.json();
+          const code = errorData.code || "";
+          const message = errorData.message || response.statusText;
+
+          if (code === "bad_auth_token" || code === "expired_auth_token") {
+            // Clear auth cache and retry will get new token
+            authCache = null;
+            throw new Error(`Authentication expired, retrying upload...`);
+          } else if (code === "storage_cap_exceeded") {
+            throw new Error(
+              `Storage quota exceeded. Please contact administrator.`,
+            );
+          } else if (code === "file_not_present") {
+            throw new Error(
+              `File "${fileName}" could not be uploaded. Please try again.`,
+            );
+          } else {
+            errorMessage = `Upload failed for "${fileName}": ${message}`;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use status text
+          errorMessage = `Upload failed for "${fileName}": ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      return {
+        fileKey: data.fileName,
+        fileName: fileName,
+        fileId: data.fileId,
+        contentLength: data.contentLength,
+        contentSha1: data.contentSha1,
+      };
+    } catch (error) {
+      // Add context to errors
+      if (error instanceof Error) {
+        if (!error.message.includes(fileName)) {
+          throw new Error(`${error.message} (file: "${fileName}")`);
+        }
+        throw error;
+      }
+      throw new Error(
+        `Unknown error uploading "${fileName}": ${String(error)}`,
+      );
+    }
+  });
 }
 
 /**

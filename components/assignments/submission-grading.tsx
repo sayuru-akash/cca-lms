@@ -65,15 +65,18 @@ export function SubmissionGrading({
         `/api/student/submissions/${submissionId}/download?attachmentId=${attachmentId}`,
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to download file");
+        throw new Error(data.error || "Failed to download file");
       }
 
-      const data = await response.json();
       window.open(data.url, "_blank");
-    } catch {
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Could not download file";
       toast.error("Download Failed", {
-        description: "Could not download file",
+        description: message,
       });
     }
   };

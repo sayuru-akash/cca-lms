@@ -92,9 +92,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ url: signedUrl, fileName: attachment.fileName });
   } catch (error) {
     console.error("Error getting download URL:", error);
-    return NextResponse.json(
-      { error: "Failed to get download URL" },
-      { status: 500 },
-    );
+
+    let errorMessage = "Failed to generate download link. Please try again.";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+
+      if (msg.includes("not found") || msg.includes("does not exist")) {
+        errorMessage = "File no longer exists in storage.";
+        statusCode = 404;
+      } else if (msg.includes("auth") || msg.includes("permission")) {
+        errorMessage = "Access denied. Please try logging in again.";
+        statusCode = 403;
+      } else if (msg.includes("expired")) {
+        errorMessage = "Download link expired. Please try again.";
+      } else if (error.message.length < 150) {
+        errorMessage = error.message;
+      }
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

@@ -38,7 +38,7 @@ interface Assignment {
   maxFileSize: number;
   maxFiles: number;
   allowLateSubmission: boolean;
-  _count?: { submissions: number };
+  _count?: { assignmentSubmissions: number };
 }
 
 interface Submission {
@@ -185,7 +185,8 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
           {assignments.map((assignment) => {
             const dueDate = new Date(assignment.dueDate);
             const isOverdue = new Date() > dueDate;
-            const hasSubmission = (assignment._count?.submissions ?? 0) > 0;
+            const hasSubmission =
+              (assignment._count?.assignmentSubmissions ?? 0) > 0;
 
             return (
               <Card key={assignment.id} className="p-4">
@@ -223,7 +224,8 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4" />
                           <span>
-                            {assignment._count?.submissions || 0} submissions
+                            {assignment._count?.assignmentSubmissions || 0}{" "}
+                            submissions
                           </span>
                         </div>
                       )}

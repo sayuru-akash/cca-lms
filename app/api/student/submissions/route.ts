@@ -161,15 +161,29 @@ export async function POST(request: NextRequest) {
           mimeType: file.type,
         });
       } catch (error) {
+        console.error(`Upload failed for ${file.name}:`, error);
+
         // Clean up already uploaded files if one fails
-        for (const uploaded of uploadedFiles) {
-          try {
-            await deleteFromB2(uploaded.fileKey, uploaded.fileId);
-          } catch (e) {
-            console.error("Error cleaning up file:", e);
-          }
-        }
-        throw error;
+        const cleanupPromises = uploadedFiles.map((uploaded) =>
+          deleteFromB2(uploaded.fileKey, uploaded.fileId).catch((e) => {
+            console.error(`Failed to cleanup ${uploaded.fileName}:`, e);
+          }),
+        );
+        await Promise.all(cleanupPromises);
+
+        // Return user-friendly error message
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : `Failed to upload "${file.name}". Please try again.`;
+
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            failedFile: file.name,
+          },
+          { status: 500 },
+        );
       }
     }
 
@@ -241,9 +255,31 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating submission:", error);
-    return NextResponse.json(
-      { error: "Failed to submit assignment" },
-      { status: 500 },
-    );
+
+    // Provide specific error messages
+    let errorMessage = "Failed to submit assignment. Please try again.";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+
+      if (msg.includes("storage") || msg.includes("quota")) {
+        errorMessage =
+          "Storage quota exceeded. Please contact your administrator.";
+      } else if (msg.includes("network") || msg.includes("fetch")) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      } else if (msg.includes("timeout")) {
+        errorMessage = "Upload timed out. Please try with smaller files.";
+      } else if (msg.includes("auth")) {
+        errorMessage = "Authentication error. Please try logging in again.";
+        statusCode = 401;
+      } else if (error.message.length < 200) {
+        // Use the actual error message if it's concise
+        errorMessage = error.message;
+      }
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

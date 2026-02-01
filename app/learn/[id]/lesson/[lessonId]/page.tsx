@@ -429,7 +429,7 @@ export default function LessonPage({
 
         {/* Assignments */}
         <div className="mb-6">
-          <AssignmentList lessonId={lessonId} role="STUDENT" />
+          {lessonId && <AssignmentList lessonId={lessonId} role="STUDENT" />}
         </div>
 
         {/* Mark Complete */}

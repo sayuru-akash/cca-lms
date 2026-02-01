@@ -26,6 +26,10 @@ export async function GET() {
       activeUsersWeek,
       recentLogs,
       totalEnrollments,
+      totalAssignments,
+      totalSubmissions,
+      pendingGrading,
+      overdueAssignments,
     ] = await Promise.all([
       // Count students
       prisma.user.count({
@@ -86,6 +90,27 @@ export async function GET() {
       prisma.courseEnrollment.count({
         where: { status: "ACTIVE", user: { role: "STUDENT" } },
       }),
+
+      // Assignment statistics
+      prisma.assignment.count(),
+
+      // Total submissions
+      prisma.assignmentSubmission.count(),
+
+      // Pending grading (submissions with null grade)
+      prisma.assignmentSubmission.count({
+        where: { grade: null },
+      }),
+
+      // Overdue assignments (past due date with no submission)
+      prisma.assignment.count({
+        where: {
+          dueDate: { lt: new Date() },
+          assignmentSubmissions: {
+            none: {},
+          },
+        },
+      }),
     ]);
 
     // Get enrollments per programme (top 5)
@@ -124,6 +149,10 @@ export async function GET() {
         totalEnrollments,
         activeUsersToday: activeUsersToday.length,
         activeUsersWeek: activeUsersWeek.length,
+        totalAssignments,
+        totalSubmissions,
+        pendingGrading,
+        overdueAssignments,
       },
       enrollmentsByProgramme: enrollmentsByProgramme.map((course) => ({
         id: course.id,

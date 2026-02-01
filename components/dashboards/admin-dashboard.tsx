@@ -50,6 +50,10 @@ interface DashboardStats {
   totalEnrollments: number;
   activeUsersToday: number;
   activeUsersWeek: number;
+  totalAssignments: number;
+  totalSubmissions: number;
+  pendingGrading: number;
+  overdueAssignments: number;
   databaseStatus?: "connected" | "disconnected" | "checking";
   systemUptime?: number;
 }
@@ -223,6 +227,32 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
       icon: Activity,
       color: "text-purple-400",
     },
+    {
+      title: "Active Assignments",
+      value: stats?.totalAssignments || 0,
+      icon: FileText,
+      color: "text-terminal-green",
+    },
+    {
+      title: "Total Submissions",
+      value: stats?.totalSubmissions || 0,
+      icon: CheckCircle2,
+      color: "text-blue-400",
+    },
+    {
+      title: "Pending Grading",
+      value: stats?.pendingGrading || 0,
+      icon: Clock,
+      color: "text-yellow-400",
+      highlight: (stats?.pendingGrading || 0) > 0,
+    },
+    {
+      title: "Overdue Assignments",
+      value: stats?.overdueAssignments || 0,
+      icon: AlertCircle,
+      color: "text-red-400",
+      highlight: (stats?.overdueAssignments || 0) > 0,
+    },
   ];
 
   const quickActions = [
@@ -293,12 +323,20 @@ export default function AdminDashboard({ user }: AdminDashboardProps) {
             return (
               <Card
                 key={index}
-                className="group hover:scale-105 transition-transform"
+                className={`group hover:scale-105 transition-transform ${
+                  stat.highlight ? "border-yellow-500/50" : ""
+                }`}
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <Icon className={`h-6 w-6 ${stat.color}`} />
-                    <div className="text-3xl font-bold font-mono text-terminal-green">
+                    <div
+                      className={`text-3xl font-bold font-mono ${
+                        stat.highlight
+                          ? "text-yellow-400"
+                          : "text-terminal-green"
+                      }`}
+                    >
                       {stat.value}
                     </div>
                   </div>

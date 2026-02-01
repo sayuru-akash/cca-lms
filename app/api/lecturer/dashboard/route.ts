@@ -104,6 +104,83 @@ export async function GET() {
       take: 5,
     });
 
+    // Get pending grading count
+    const pendingGrading = await prisma.assignmentSubmission.count({
+      where: {
+        assignment: {
+          lesson: {
+            module: {
+              course: {
+                lecturers: {
+                  some: {
+                    lecturerId,
+                  },
+                },
+              },
+            },
+          },
+        },
+        status: "SUBMITTED",
+        grade: null,
+      },
+    });
+
+    // Get recent submissions requiring grading
+    const pendingSubmissions = await prisma.assignmentSubmission.findMany({
+      where: {
+        assignment: {
+          lesson: {
+            module: {
+              course: {
+                lecturers: {
+                  some: {
+                    lecturerId,
+                  },
+                },
+              },
+            },
+          },
+        },
+        status: "SUBMITTED",
+        grade: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            dueDate: true,
+            maxPoints: true,
+            lesson: {
+              select: {
+                title: true,
+                module: {
+                  select: {
+                    course: {
+                      select: {
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        submittedAt: "asc",
+      },
+      take: 10,
+    });
+
     return NextResponse.json({
       stats: {
         totalCourses: courses.length,
@@ -111,6 +188,7 @@ export async function GET() {
         totalModules,
         publishedCourses: courses.filter((c) => c.status === "PUBLISHED")
           .length,
+        pendingGrading,
       },
       courses: courses.map((course) => ({
         id: course.id,
@@ -128,6 +206,18 @@ export async function GET() {
         courseTitle: enrollment.course.title,
         enrolledAt: enrollment.enrolledAt,
         progress: enrollment.progress,
+      })),
+      pendingSubmissions: pendingSubmissions.map((submission) => ({
+        id: submission.id,
+        studentName: submission.user.name,
+        assignmentTitle: submission.assignment.title,
+        courseTitle: submission.assignment.lesson.module.course.title,
+        submittedAt: submission.submittedAt,
+        dueDate: submission.assignment.dueDate,
+        maxPoints: submission.assignment.maxPoints,
+        isLate: submission.submittedAt
+          ? submission.submittedAt > submission.assignment.dueDate
+          : false,
       })),
     });
   } catch (error) {

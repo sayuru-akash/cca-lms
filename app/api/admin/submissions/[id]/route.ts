@@ -84,10 +84,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ submission });
   } catch (error) {
     console.error("Error fetching submission:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch submission" },
-      { status: 500 },
-    );
+
+    let errorMessage = "Failed to load submission details.";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      if (error.message.includes("not found")) {
+        errorMessage = "Submission not found.";
+        statusCode = 404;
+      } else if (error.message.includes("permission")) {
+        errorMessage = "Access denied to this submission.";
+        statusCode = 403;
+      }
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }
 
@@ -203,9 +214,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("Error grading submission:", error);
-    return NextResponse.json(
-      { error: "Failed to grade submission" },
-      { status: 500 },
-    );
+
+    let errorMessage = "Failed to save grade. Please try again.";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+
+      if (msg.includes("not found")) {
+        errorMessage = "Submission not found. It may have been deleted.";
+        statusCode = 404;
+      } else if (
+        msg.includes("unique constraint") ||
+        msg.includes("duplicate")
+      ) {
+        errorMessage = "This submission has already been graded.";
+        statusCode = 409;
+      } else if (msg.includes("permission") || msg.includes("unauthorized")) {
+        errorMessage = "You don't have permission to grade this submission.";
+        statusCode = 403;
+      } else if (error.message.length < 150) {
+        errorMessage = error.message;
+      }
+    }
+
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

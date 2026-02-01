@@ -11,6 +11,8 @@ import {
   Loader2,
   AlertCircle,
   TrendingUp,
+  FileText,
+  Calendar,
 } from "lucide-react";
 import {
   Card,
@@ -57,9 +59,23 @@ interface Activity {
   timestamp: string;
 }
 
+interface Assignment {
+  id: string;
+  title: string;
+  dueDate: string;
+  maxPoints: number;
+  courseTitle: string;
+  lessonTitle: string;
+  courseId: string;
+  lessonId: string;
+  isOverdue: boolean;
+  daysUntilDue: number;
+}
+
 interface DashboardData {
   programmes: Programme[];
   recentActivity: Activity[];
+  upcomingAssignments: Assignment[];
   stats: {
     totalEnrolled: number;
     totalCompleted: number;
@@ -338,6 +354,79 @@ export default function StudentDashboard({ user }: StudentDashboardProps) {
                         })}
                       </p>
                     </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Assignments */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Upcoming Assignments
+              </CardTitle>
+              <CardDescription>
+                Assignments due soon - stay on track!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {data.upcomingAssignments?.length === 0 ? (
+                <div className="text-center py-12 text-terminal-text-muted font-mono text-sm">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  No upcoming assignments
+                </div>
+              ) : (
+                data.upcomingAssignments?.map((assignment) => (
+                  <div
+                    key={assignment.id}
+                    className="flex items-start justify-between p-3 rounded-md border border-terminal-green/10 bg-terminal-darker/30"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-sm font-mono font-semibold text-terminal-text">
+                          {assignment.title}
+                        </h4>
+                        <Badge
+                          variant={
+                            assignment.daysUntilDue <= 1
+                              ? "danger"
+                              : assignment.daysUntilDue <= 3
+                                ? "warning"
+                                : "default"
+                          }
+                        >
+                          {assignment.daysUntilDue === 0
+                            ? "Due today"
+                            : assignment.daysUntilDue === 1
+                              ? "Due tomorrow"
+                              : `${assignment.daysUntilDue} days left`}
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-mono text-terminal-text-muted mb-1">
+                        {assignment.courseTitle} → {assignment.lessonTitle}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs font-mono text-terminal-text-muted">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(assignment.dueDate).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" />
+                          {assignment.maxPoints} points
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/learn/assignment/${assignment.id}`}
+                      className="shrink-0"
+                    >
+                      <Button size="sm" className="gap-1">
+                        <FileText className="h-3 w-3" />
+                        Submit
+                      </Button>
+                    </Link>
                   </div>
                 ))
               )}

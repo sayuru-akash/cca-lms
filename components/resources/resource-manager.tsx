@@ -310,13 +310,13 @@ export function ResourceManager({
                 <div className="flex items-start gap-4">
                   {/* Drag Handle */}
                   {canEdit && (
-                    <div className="flex-shrink-0 mt-1 cursor-grab active:cursor-grabbing">
+                    <div className="shrink-0 mt-1 cursor-grab active:cursor-grabbing">
                       <GripVertical className="h-5 w-5 text-terminal-text-muted" />
                     </div>
                   )}
 
                   {/* Icon */}
-                  <div className="flex-shrink-0 mt-1">
+                  <div className="shrink-0 mt-1">
                     {getResourceIcon(resource.type)}
                   </div>
 
@@ -356,7 +356,7 @@ export function ResourceManager({
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         {resource.type === "FILE" && resource.downloadable && (
                           <Button
                             variant="ghost"

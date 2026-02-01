@@ -183,9 +183,83 @@ export async function GET() {
         ? enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrolled
         : 0;
 
+    // Fetch upcoming assignments
+    const upcomingAssignments = await prisma.assignment.findMany({
+      where: {
+        lesson: {
+          module: {
+            course: {
+              enrollments: {
+                some: {
+                  userId,
+                  status: "ACTIVE",
+                },
+              },
+            },
+          },
+        },
+        dueDate: {
+          gte: new Date(),
+        },
+        // Only show assignments without submissions or draft submissions
+        assignmentSubmissions: {
+          none: {
+            userId,
+            status: {
+              in: ["SUBMITTED", "GRADED"],
+            },
+          },
+        },
+      },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            title: true,
+            module: {
+              select: {
+                title: true,
+                course: {
+                  select: {
+                    id: true,
+                    title: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        assignmentSubmissions: {
+          where: { userId },
+          select: {
+            status: true,
+          },
+        },
+      },
+      orderBy: {
+        dueDate: "asc",
+      },
+      take: 5,
+    });
+
     return NextResponse.json({
       programmes,
       recentActivity,
+      upcomingAssignments: upcomingAssignments.map((assignment) => ({
+        id: assignment.id,
+        title: assignment.title,
+        dueDate: assignment.dueDate,
+        maxPoints: assignment.maxPoints,
+        courseTitle: assignment.lesson.module.course.title,
+        lessonTitle: assignment.lesson.title,
+        courseId: assignment.lesson.module.course.id,
+        lessonId: assignment.lesson.id,
+        isOverdue: assignment.dueDate < new Date(),
+        daysUntilDue: Math.ceil(
+          (assignment.dueDate.getTime() - new Date().getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+      })),
       stats: {
         totalEnrolled,
         totalCompleted,
