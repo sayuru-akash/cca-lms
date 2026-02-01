@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, FileRejection } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,17 +49,30 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
     [title],
   );
 
-  const onDropRejected = useCallback((fileRejections: any[]) => {
+  const onDropRejected = useCallback((fileRejections: FileRejection[]) => {
     if (fileRejections.length > 0) {
       const rejection = fileRejections[0];
       const error = rejection.errors[0];
 
       if (error.code === "file-too-large") {
-        toast.error("File is too large. Maximum file size is 5MB.");
+        toast.error("File Too Large", {
+          description:
+            "The file you selected exceeds the 5MB limit. Please choose a smaller file.",
+          duration: 5000,
+        });
       } else if (error.code === "file-invalid-type") {
-        toast.error("Invalid file type. Please select a valid file.");
+        toast.error("Invalid File Type", {
+          description:
+            "Please upload: PDF (.pdf), Word (.doc, .docx), Excel (.xls, .xlsx), PowerPoint (.ppt, .pptx), or CSV (.csv) files only.",
+          duration: 6000,
+        });
       } else {
-        toast.error(error.message || "File upload rejected.");
+        toast.error("Upload Failed", {
+          description:
+            error.message ||
+            "The file could not be uploaded. Please try again.",
+          duration: 4000,
+        });
       }
     }
   }, []);
@@ -69,6 +82,21 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
     onDropRejected,
     multiple: false,
     maxSize: 5 * 1024 * 1024, // 5MB
+    accept: {
+      "application/pdf": [".pdf"],
+      "application/msword": [".doc"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "application/vnd.ms-excel": [".xls"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
+      "application/vnd.ms-powerpoint": [".ppt"],
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+        [".pptx"],
+      "text/csv": [".csv"],
+      "application/csv": [".csv"],
+    },
   });
 
   const removeFile = () => {
@@ -87,12 +115,16 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
     e.preventDefault();
 
     if (type === "FILE" && !file) {
-      toast.error("Please select a file to upload");
+      toast.error("No File Selected", {
+        description: "Please select a file to upload before submitting.",
+      });
       return;
     }
 
     if (!title) {
-      toast.error("Please enter a title");
+      toast.error("Title Required", {
+        description: "Please enter a title for this resource.",
+      });
       return;
     }
 
@@ -150,11 +182,19 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
       }
 
       const resource = await response.json();
-      toast.success("Resource uploaded successfully!");
+      toast.success("Upload Complete!", {
+        description: `${title} has been uploaded successfully.`,
+        duration: 4000,
+      });
       onSuccess?.(resource);
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload resource");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload resource";
+      toast.error("Upload Failed", {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -197,7 +237,7 @@ export function FileUpload({ lessonId, onSuccess, onCancel }: FileUploadProps) {
                   : "Drag & drop a file here, or click to select"}
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Maximum file size: 5MB
+                Allowed: PDF, Word, Excel, PowerPoint, CSV (Max: 5MB)
               </p>
             </div>
           ) : (

@@ -224,6 +224,8 @@ export const FILE_VALIDATIONS = {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-powerpoint",
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "text/csv",
+      "application/csv",
     ],
     maxSizeMB: 5,
   },
