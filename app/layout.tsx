@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { ConfirmProvider } from "@/components/ui/confirm-dialog";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 
@@ -83,9 +84,11 @@ export default function RootLayout({
       >
         <AuthProvider>
           <ThemeProvider>
-            <Navbar />
-            <main className="flex-1">{children}</main>
-            <Footer />
+            <ConfirmProvider>
+              <Navbar />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </ConfirmProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

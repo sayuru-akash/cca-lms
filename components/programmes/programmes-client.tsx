@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination } from "@/components/ui/pagination";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 interface Programme {
   id: string;
@@ -113,6 +115,7 @@ interface AvailableUser {
 
 export default function ProgrammesClient() {
   const router = useRouter();
+  const confirm = useConfirm();
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [lecturers, setLecturers] = useState<Lecturer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -291,9 +294,22 @@ export default function ProgrammesClient() {
     const action = isArchiving ? "archive" : "unarchive";
     const newStatus = isArchiving ? "ARCHIVED" : "PUBLISHED";
 
-    if (!confirm(`Are you sure you want to ${action} "${programme.title}"?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: isArchiving ? "Archive Programme" : "Unarchive Programme",
+      description: isArchiving
+        ? `Archiving "${programme.title}" will hide it from active listings. Students will retain their progress.`
+        : `Unarchiving "${programme.title}" will make it visible in active listings again.`,
+      variant: isArchiving ? "warning" : "default",
+      confirmText: isArchiving ? "Archive" : "Unarchive",
+      details: programme._count
+        ? [
+            `Enrolled students: ${programme._count.enrollments}`,
+            `Modules: ${programme._count.modules}`,
+          ]
+        : undefined,
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/programmes/${programme.id}`, {
@@ -309,14 +325,18 @@ export default function ProgrammesClient() {
         throw new Error(data.error || `Failed to ${action} programme`);
       }
 
+      toast.success(`Programme ${action}d`, {
+        description: `"${programme.title}" has been ${action}d successfully`,
+      });
       fetchProgrammes();
     } catch (error) {
       console.error(`Error ${action}ing programme:`, error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : `Failed to ${action} programme`,
-      );
+      toast.error("Action Failed", {
+        description:
+          error instanceof Error
+            ? error.message
+            : `Failed to ${action} programme`,
+      });
     }
   };
 
@@ -354,8 +374,16 @@ export default function ProgrammesClient() {
   const handleRemoveEnrollment = async (
     programmeId: string,
     userId: string,
+    userName?: string,
   ) => {
-    if (!confirm("Remove this user from the programme?")) return;
+    const confirmed = await confirm({
+      title: "Remove User from Programme",
+      description: `Are you sure you want to remove ${userName || "this user"} from the programme? Their progress will be lost.`,
+      variant: "warning",
+      confirmText: "Remove",
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(
@@ -365,11 +393,14 @@ export default function ProgrammesClient() {
 
       if (!response.ok) throw new Error("Failed to remove enrollment");
 
+      toast.success("User removed", {
+        description: `${userName || "User"} has been removed from the programme`,
+      });
       fetchEnrollments(programmeId);
       fetchProgrammes();
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      alert("Failed to remove user from programme");
+      toast.error("Failed to remove user from programme");
     }
   };
 
@@ -431,7 +462,11 @@ export default function ProgrammesClient() {
       setShowAddUsersDialog(false);
 
       if (data.skipped > 0) {
-        alert(data.message);
+        toast.info("Users enrolled", { description: data.message });
+      } else {
+        toast.success("Users enrolled", {
+          description: `${selectedUsers.length} user(s) enrolled successfully`,
+        });
       }
     } catch (err) {
       setEnrollError(err instanceof Error ? err.message : "An error occurred");
@@ -493,11 +528,19 @@ export default function ProgrammesClient() {
   const handleBulkRemove = async () => {
     if (!enrollmentsProgramme || selectedToRemove.length === 0) return;
 
-    if (
-      !confirm(`Remove ${selectedToRemove.length} user(s) from this programme?`)
-    ) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: "Remove Users from Programme",
+      description: `Are you sure you want to remove ${selectedToRemove.length} user(s) from "${enrollmentsProgramme.title}"?`,
+      variant: "danger",
+      confirmText: `Remove ${selectedToRemove.length} Users`,
+      details: [
+        `${selectedToRemove.length} user(s) will be removed`,
+        "Their progress will be permanently lost",
+        "This action cannot be undone",
+      ],
+    });
+
+    if (!confirmed) return;
 
     setIsRemovingBulk(true);
 
@@ -511,12 +554,15 @@ export default function ProgrammesClient() {
         ),
       );
 
+      toast.success("Users removed", {
+        description: `${selectedToRemove.length} user(s) removed from the programme`,
+      });
       fetchEnrollments(enrollmentsProgramme.id);
       fetchProgrammes();
       setSelectedToRemove([]);
     } catch (error) {
       console.error("Error removing enrollments:", error);
-      alert("Failed to remove some enrollments");
+      toast.error("Failed to remove some enrollments");
     } finally {
       setIsRemovingBulk(false);
     }

@@ -52,6 +52,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination } from "@/components/ui/pagination";
+import { useConfirm } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -92,6 +94,7 @@ interface Enrollment {
 
 export default function UsersClient() {
   const router = useRouter();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<"STUDENT" | "LECTURER">("STUDENT");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -507,8 +510,19 @@ export default function UsersClient() {
     }
   };
 
-  const handleRemoveEnrollment = async (userId: string, courseId: string) => {
-    if (!confirm("Remove this programme assignment?")) return;
+  const handleRemoveEnrollment = async (
+    userId: string,
+    courseId: string,
+    programmeName?: string,
+  ) => {
+    const confirmed = await confirm({
+      title: "Remove Programme Assignment",
+      description: `Are you sure you want to remove the user from "${programmeName || "this programme"}"? Their progress will be lost.`,
+      variant: "warning",
+      confirmText: "Remove",
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(
@@ -518,11 +532,12 @@ export default function UsersClient() {
 
       if (!response.ok) throw new Error("Failed to remove enrollment");
 
+      toast.success("Programme assignment removed");
       fetchUsers();
       fetchUserEnrollments(userId);
     } catch (error) {
       console.error("Error removing enrollment:", error);
-      alert("Failed to remove programme assignment");
+      toast.error("Failed to remove programme assignment");
     }
   };
 
@@ -1321,6 +1336,7 @@ export default function UsersClient() {
                             handleRemoveEnrollment(
                               viewingUser.id,
                               enrollment.course.id,
+                              enrollment.course.title,
                             )
                           }
                           className="text-destructive hover:text-destructive"

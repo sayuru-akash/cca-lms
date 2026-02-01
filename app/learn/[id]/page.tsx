@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Lesson {
   id: string;
@@ -151,7 +152,9 @@ export default function ProgrammeDetailPage({
 
     // Double-check user role before enrollment
     if (session?.user?.role !== "STUDENT") {
-      alert("Only students can enroll in programmes");
+      toast.error("Enrollment restricted", {
+        description: "Only students can enroll in programmes",
+      });
       return;
     }
 
@@ -166,10 +169,13 @@ export default function ProgrammeDetailPage({
 
       if (!response.ok) throw new Error("Failed to enroll");
 
+      toast.success("Enrolled successfully!");
       await fetchProgramme();
     } catch (error) {
       console.error("Error enrolling:", error);
-      alert("Failed to enroll in programme");
+      toast.error("Enrollment failed", {
+        description: "Failed to enroll in programme. Please try again.",
+      });
     } finally {
       setEnrolling(false);
     }

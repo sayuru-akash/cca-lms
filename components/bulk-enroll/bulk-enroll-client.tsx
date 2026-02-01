@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Programme {
   id: string;
@@ -156,9 +157,9 @@ export default function BulkEnrollClient() {
         throw new Error(data.error || "Failed to create enrollments");
       }
 
-      alert(
-        `Successfully enrolled ${data.created} ${userType.toLowerCase()}(s) to programmes!\n${data.skipped > 0 ? `Skipped ${data.skipped} duplicate(s).` : ""}`,
-      );
+      toast.success("Bulk enrollment complete", {
+        description: `Successfully enrolled ${data.created} ${userType.toLowerCase()}(s) to programmes${data.skipped > 0 ? `. Skipped ${data.skipped} duplicate(s).` : ""}`,
+      });
 
       // Reset form
       setFile(null);

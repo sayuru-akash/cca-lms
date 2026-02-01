@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteFromB2 } from "@/lib/b2";
+import { deleteFromR2 } from "@/lib/r2";
 
 // GET /api/admin/modules/[id] - Get single module
 export async function GET(
@@ -169,21 +171,98 @@ export async function DELETE(
       return NextResponse.json({ error: "Module not found" }, { status: 404 });
     }
 
-    if (module._count.lessons > 0) {
+    // Check for force delete query param
+    const { searchParams } = new URL(request.url);
+    const forceDelete = searchParams.get("force") === "true";
+
+    if (module._count.lessons > 0 && !forceDelete) {
       return NextResponse.json(
         {
-          error: "Cannot delete module with lessons. Delete all lessons first.",
+          error: `Module has ${module._count.lessons} lesson(s). Use force=true to delete all content including submissions and files.`,
+          lessonsCount: module._count.lessons,
         },
         { status: 400 },
       );
     }
 
+    // If force delete, get all files to delete (R2 for resources, B2 for submissions)
+    let r2FileKeys: string[] = [];
+    let b2FileKeys: string[] = [];
+
+    if (forceDelete && module._count.lessons > 0) {
+      const moduleWithFiles = await prisma.module.findUnique({
+        where: { id },
+        include: {
+          lessons: {
+            include: {
+              resources: {
+                select: { fileKey: true },
+              },
+              assignments: {
+                include: {
+                  assignmentSubmissions: {
+                    include: {
+                      attachments: {
+                        select: { fileKey: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (moduleWithFiles) {
+        for (const lesson of moduleWithFiles.lessons) {
+          // Lesson resources are in R2
+          for (const resource of lesson.resources) {
+            if (resource.fileKey) {
+              r2FileKeys.push(resource.fileKey);
+            }
+          }
+
+          // Assignment submission attachments are in B2
+          for (const assignment of lesson.assignments) {
+            for (const submission of assignment.assignmentSubmissions) {
+              for (const attachment of submission.attachments) {
+                if (attachment.fileKey) {
+                  b2FileKeys.push(attachment.fileKey);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Delete from database (cascade handles relations)
     await prisma.module.delete({
       where: { id },
     });
 
+    // Clean up R2 files (resources)
+    for (const fileKey of r2FileKeys) {
+      try {
+        await deleteFromR2(fileKey);
+      } catch (error) {
+        console.error(`Failed to delete R2 file ${fileKey}:`, error);
+      }
+    }
+
+    // Clean up B2 files (submissions)
+    for (const fileKey of b2FileKeys) {
+      try {
+        await deleteFromB2(fileKey);
+      } catch (error) {
+        console.error(`Failed to delete B2 file ${fileKey}:`, error);
+      }
+    }
+
     return NextResponse.json({
       message: "Module deleted successfully",
+      filesDeleted: r2FileKeys.length + b2FileKeys.length,
     });
   } catch (error) {
     console.error("Error deleting module:", error);

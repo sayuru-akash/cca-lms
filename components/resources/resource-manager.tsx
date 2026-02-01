@@ -23,6 +23,7 @@ import {
   Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { FileUpload } from "./file-upload";
 import {
   Dialog,
@@ -77,6 +78,7 @@ export function ResourceManager({
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchResources();
@@ -99,7 +101,24 @@ export function ResourceManager({
   };
 
   const handleDelete = async (resourceId: string) => {
-    if (!confirm("Are you sure you want to delete this resource?")) return;
+    const resource = resources.find((r) => r.id === resourceId);
+
+    const confirmed = await confirm({
+      title: "Delete Resource",
+      description: `Are you sure you want to delete "${resource?.title || "this resource"}"? This action cannot be undone.`,
+      variant: "danger",
+      confirmText: "Delete",
+      details: resource
+        ? ([
+            `Type: ${resource.type.replace("_", " ")}`,
+            resource.fileKey
+              ? "Associated file will be removed from storage"
+              : null,
+          ].filter(Boolean) as string[])
+        : undefined,
+    });
+
+    if (!confirmed) return;
 
     setDeleting(resourceId);
     try {

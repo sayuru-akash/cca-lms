@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteFromB2 } from "@/lib/b2";
+import { deleteFromR2 } from "@/lib/r2";
 
 // GET /api/admin/lessons/[id] - Get single lesson
 export async function GET(
@@ -196,12 +198,77 @@ export async function DELETE(
       }
     }
 
+    // Get all files that will be cascade deleted (resources in R2, submissions in B2)
+    const lessonWithFiles = await prisma.lesson.findUnique({
+      where: { id },
+      include: {
+        resources: {
+          select: { fileKey: true },
+        },
+        assignments: {
+          include: {
+            assignmentSubmissions: {
+              include: {
+                attachments: {
+                  select: { fileKey: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Separate R2 (resources) and B2 (submissions) file keys
+    const r2FileKeys: string[] = []; // Lesson resources (Cloudflare R2)
+    const b2FileKeys: string[] = []; // Student submissions (Backblaze B2)
+
+    if (lessonWithFiles) {
+      // Lesson resources are in R2
+      for (const resource of lessonWithFiles.resources) {
+        if (resource.fileKey) {
+          r2FileKeys.push(resource.fileKey);
+        }
+      }
+
+      // Assignment submission attachments are in B2
+      for (const assignment of lessonWithFiles.assignments) {
+        for (const submission of assignment.assignmentSubmissions) {
+          for (const attachment of submission.attachments) {
+            if (attachment.fileKey) {
+              b2FileKeys.push(attachment.fileKey);
+            }
+          }
+        }
+      }
+    }
+
+    // Delete from database first (cascade will clean up relations)
     await prisma.lesson.delete({
       where: { id },
     });
 
+    // Clean up R2 files (resources) - don't fail if cleanup fails
+    for (const fileKey of r2FileKeys) {
+      try {
+        await deleteFromR2(fileKey);
+      } catch (error) {
+        console.error(`Failed to delete R2 file ${fileKey}:`, error);
+      }
+    }
+
+    // Clean up B2 files (submissions) - don't fail if cleanup fails
+    for (const fileKey of b2FileKeys) {
+      try {
+        await deleteFromB2(fileKey);
+      } catch (error) {
+        console.error(`Failed to delete B2 file ${fileKey}:`, error);
+      }
+    }
+
     return NextResponse.json({
       message: "Lesson deleted successfully",
+      filesDeleted: r2FileKeys.length + b2FileKeys.length,
     });
   } catch (error) {
     console.error("Error deleting lesson:", error);

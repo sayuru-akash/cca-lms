@@ -51,6 +51,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { QuizBuilder } from "@/components/quizzes/quiz-builder";
 import { ResourceManager } from "@/components/resources/resource-manager";
 import { AssignmentList } from "@/components/assignments/assignment-list";
@@ -99,6 +100,7 @@ export default function ProgrammeContentClient({
   programmeId: string;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [programme, setProgramme] = useState<Programme | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedModules, setExpandedModules] = useState<Set<string>>(
@@ -157,7 +159,7 @@ export default function ProgrammeContentClient({
       setExpandedModules(moduleIds);
     } catch (error) {
       console.error("Error fetching programme:", error);
-      alert("Failed to load programme");
+      toast.error("Failed to load programme");
       router.push("/programmes");
     } finally {
       setIsLoading(false);
@@ -226,20 +228,50 @@ export default function ProgrammeContentClient({
     }
   };
 
-  const handleDeleteModule = async (module: Module) => {
-    if (module._count.lessons > 0) {
-      alert(
-        "Cannot delete module with lessons. Please delete all lessons first.",
-      );
+  const handleDeleteModule = async (module: Module, forceDelete = false) => {
+    const lessonCount = module._count.lessons;
+
+    if (lessonCount > 0 && !forceDelete) {
+      // Module has lessons - show warning with force delete option
+      const confirmed = await confirm({
+        title: "Module Has Lessons",
+        description: `This module contains ${lessonCount} lesson(s). Deleting it will permanently remove all lessons, resources, quizzes, and assignments within them.`,
+        variant: "danger",
+        confirmText: "Delete Module & All Content",
+        requireTypedConfirmation: "DELETE",
+        details: [
+          `Module: ${module.title}`,
+          `Lessons: ${lessonCount}`,
+          "All associated resources will be deleted",
+          "All associated quizzes will be deleted",
+          "All assignments and submissions will be deleted",
+        ],
+      });
+
+      if (confirmed) {
+        return handleDeleteModule(module, true);
+      }
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete "${module.title}"?`)) {
-      return;
+    // Simple confirmation for empty module
+    if (!forceDelete) {
+      const confirmed = await confirm({
+        title: "Delete Module",
+        description: `Are you sure you want to delete "${module.title}"?`,
+        variant: "danger",
+        confirmText: "Delete",
+      });
+
+      if (!confirmed) return;
     }
 
     try {
-      const response = await fetch(`/api/admin/modules/${module.id}`, {
+      const url = forceDelete
+        ? `/api/admin/modules/${module.id}?force=true`
+        : `/api/admin/modules/${module.id}`;
+
+      const response = await fetch(url, {
         method: "DELETE",
       });
 
@@ -248,10 +280,19 @@ export default function ProgrammeContentClient({
         throw new Error(data.error || "Failed to delete module");
       }
 
+      toast.success("Module Deleted", {
+        description: forceDelete
+          ? "Module and all content removed"
+          : "Module removed successfully",
+      });
+
       await fetchProgramme();
     } catch (error) {
       console.error("Error deleting module:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete module");
+      toast.error("Delete Failed", {
+        description:
+          error instanceof Error ? error.message : "Failed to delete module",
+      });
     }
   };
 
@@ -321,9 +362,28 @@ export default function ProgrammeContentClient({
   };
 
   const handleDeleteLesson = async (lesson: Lesson) => {
-    if (!confirm(`Are you sure you want to delete "${lesson.title}"?`)) {
-      return;
-    }
+    const resourceCount = lesson._count?.resources || 0;
+
+    const confirmed = await confirm({
+      title: "Delete Lesson",
+      description:
+        resourceCount > 0
+          ? `This lesson has ${resourceCount} resource(s) attached. Deleting it will remove all associated content.`
+          : `Are you sure you want to delete "${lesson.title}"?`,
+      variant: "danger",
+      confirmText: "Delete",
+      details:
+        resourceCount > 0
+          ? [
+              `Lesson: ${lesson.title}`,
+              `Type: ${lesson.type}`,
+              `Resources: ${resourceCount}`,
+              "All quizzes and assignments will be deleted",
+            ]
+          : undefined,
+    });
+
+    if (!confirmed) return;
 
     try {
       const response = await fetch(`/api/admin/lessons/${lesson.id}`, {
@@ -335,10 +395,17 @@ export default function ProgrammeContentClient({
         throw new Error(data.error || "Failed to delete lesson");
       }
 
+      toast.success("Lesson Deleted", {
+        description: "Lesson and associated content removed",
+      });
+
       await fetchProgramme();
     } catch (error) {
       console.error("Error deleting lesson:", error);
-      alert(error instanceof Error ? error.message : "Failed to delete lesson");
+      toast.error("Delete Failed", {
+        description:
+          error instanceof Error ? error.message : "Failed to delete lesson",
+      });
     }
   };
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 import { isDeadlinePassed } from "@/lib/utils";
 import {
   Dialog,
@@ -108,28 +109,73 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
     }
   };
 
-  const handleDelete = async (assignmentId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this assignment? This action cannot be undone.",
-      )
-    ) {
-      return;
+  const confirm = useConfirm();
+
+  const handleDelete = async (assignmentId: string, forceDelete = false) => {
+    const assignment = assignments.find((a) => a.id === assignmentId);
+    const submissionCount = assignment?._count?.assignmentSubmissions || 0;
+
+    // If not force delete, show initial confirmation
+    if (!forceDelete) {
+      const confirmed = await confirm({
+        title: "Delete Assignment",
+        description:
+          submissionCount > 0
+            ? `This assignment has ${submissionCount} submission(s). Deleting it will permanently remove all student submissions and uploaded files.`
+            : "Are you sure you want to delete this assignment? This action cannot be undone.",
+        variant: "danger",
+        confirmText: "Delete",
+        details:
+          submissionCount > 0
+            ? [
+                `Assignment: ${assignment?.title}`,
+                `Submissions: ${submissionCount}`,
+              ]
+            : undefined,
+      });
+
+      if (!confirmed) return;
     }
 
     try {
-      const response = await fetch(`/api/admin/assignments/${assignmentId}`, {
+      const url = forceDelete
+        ? `/api/admin/assignments/${assignmentId}?force=true`
+        : `/api/admin/assignments/${assignmentId}`;
+
+      const response = await fetch(url, {
         method: "DELETE",
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        // If deletion failed due to submissions and not already force deleting
+        if (data.error?.includes("submissions") && !forceDelete) {
+          const forceConfirmed = await confirm({
+            title: "Assignment Has Submissions",
+            description: `This assignment has ${data.submissionCount || "existing"} submission(s). To delete it, you must confirm by typing "DELETE" below.`,
+            variant: "danger",
+            confirmText: "Force Delete",
+            requireTypedConfirmation: "DELETE",
+            details: [
+              `All ${data.submissionCount || ""} submissions will be permanently deleted`,
+              "All uploaded files will be removed from storage",
+              "This action cannot be undone",
+            ],
+          });
+
+          if (forceConfirmed) {
+            return handleDelete(assignmentId, true);
+          }
+          return;
+        }
         throw new Error(data.error || "Failed to delete assignment");
       }
 
       toast.success("Assignment Deleted", {
-        description: "Assignment removed successfully",
+        description: forceDelete
+          ? `Assignment and ${data.deletedSubmissions || 0} submissions removed`
+          : "Assignment removed successfully",
       });
 
       fetchAssignments();

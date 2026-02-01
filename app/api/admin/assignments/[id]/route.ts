@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit";
+import { deleteFromB2 } from "@/lib/b2";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -210,6 +211,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const forceDelete = searchParams.get("force") === "true";
 
     const assignment = await prisma.assignment.findUnique({
       where: { id },
@@ -230,19 +233,59 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Warn if there are submissions
-    if (assignment._count.assignmentSubmissions > 0) {
+    // Warn if there are submissions (unless force delete)
+    if (assignment._count.assignmentSubmissions > 0 && !forceDelete) {
       return NextResponse.json(
         {
-          error: `Cannot delete assignment with ${assignment._count.assignmentSubmissions} submission(s). Please archive instead.`,
+          error: `Assignment has ${assignment._count.assignmentSubmissions} submission(s). Use force=true to delete all submissions and files.`,
+          submissionsCount: assignment._count.assignmentSubmissions,
         },
         { status: 400 },
       );
     }
 
+    // Get B2 files to delete if force deleting
+    let filesToDelete: { fileKey: string; fileId: string }[] = [];
+
+    if (forceDelete && assignment._count.assignmentSubmissions > 0) {
+      const assignmentWithFiles = await prisma.assignment.findUnique({
+        where: { id },
+        include: {
+          assignmentSubmissions: {
+            include: {
+              attachments: {
+                select: { fileKey: true, fileId: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (assignmentWithFiles) {
+        for (const submission of assignmentWithFiles.assignmentSubmissions) {
+          for (const attachment of submission.attachments) {
+            filesToDelete.push({
+              fileKey: attachment.fileKey,
+              fileId: attachment.fileId,
+            });
+          }
+        }
+      }
+    }
+
+    // Delete from database
     await prisma.assignment.delete({
       where: { id },
     });
+
+    // Clean up B2 files
+    for (const file of filesToDelete) {
+      try {
+        await deleteFromB2(file.fileKey, file.fileId);
+      } catch (error) {
+        console.error(`Failed to delete B2 file ${file.fileKey}:`, error);
+      }
+    }
 
     await createAuditLog({
       userId: session.user.id,
@@ -251,11 +294,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       entityId: id,
       metadata: {
         title: assignment.title,
+        submissionsDeleted: assignment._count.assignmentSubmissions,
+        filesDeleted: filesToDelete.length,
       },
     });
 
     return NextResponse.json({
       message: "Assignment deleted successfully",
+      submissionsDeleted: assignment._count.assignmentSubmissions,
+      filesDeleted: filesToDelete.length,
     });
   } catch (error) {
     console.error("Error deleting assignment:", error);

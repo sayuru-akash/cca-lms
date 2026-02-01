@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AssignmentList } from "@/components/assignments/assignment-list";
+import { toast } from "sonner";
 
 interface Resource {
   id: string;
@@ -329,10 +330,11 @@ export default function LessonPage({
 
       if (!response.ok) throw new Error("Failed to mark complete");
 
+      toast.success("Lesson completed!");
       await fetchLesson();
     } catch (error) {
       console.error("Error marking complete:", error);
-      alert("Failed to mark lesson as complete");
+      toast.error("Failed to mark lesson as complete");
     } finally {
       setIsCompleting(false);
     }

@@ -25,6 +25,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 interface Question {
   id: string;
@@ -82,6 +83,7 @@ export function QuizPlayer({ quizId, onComplete, onCancel }: QuizPlayerProps) {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [result, setResult] = useState<AttemptResult | null>(null);
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchQuiz();
@@ -141,10 +143,14 @@ export function QuizPlayer({ quizId, onComplete, onCancel }: QuizPlayerProps) {
     // Check if all questions are answered
     const unanswered = quiz.questions.filter((q) => !responses[q.id]);
     if (unanswered.length > 0) {
-      const confirm = window.confirm(
-        `You have ${unanswered.length} unanswered question(s). Submit anyway?`,
-      );
-      if (!confirm) return;
+      const confirmed = await confirm({
+        title: "Unanswered Questions",
+        description: `You have ${unanswered.length} unanswered question(s). Are you sure you want to submit?`,
+        variant: "warning",
+        confirmText: "Submit Anyway",
+        cancelText: "Continue Quiz",
+      });
+      if (!confirmed) return;
     }
 
     setSubmitting(true);
