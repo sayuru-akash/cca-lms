@@ -209,7 +209,7 @@ export function StudentSubmission({ assignmentId }: StudentSubmissionProps) {
   }
 
   const dueDate = new Date(assignment.dueDate);
-  const isOverdue = new Date() > dueDate;
+  const isOverdue = assignment.isOverdue; // Use server-calculated value instead of client calculation
   const canSubmit = assignment.canSubmit && (!submission || !isOverdue);
   const canDownload = submission && !isOverdue;
 
@@ -235,7 +235,16 @@ export function StudentSubmission({ assignmentId }: StudentSubmissionProps) {
             <Label className="text-terminal-text-muted">Due Date</Label>
             <div className="flex items-center gap-2 mt-1">
               <Clock className="h-4 w-4" />
-              <span>{dueDate.toLocaleString()}</span>
+              <span>
+                {dueDate.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
             </div>
           </div>
           <div>

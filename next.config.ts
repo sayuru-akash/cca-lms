@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// Set global server timezone to Sri Lanka
+process.env.TZ = "Asia/Colombo";
+
 const nextConfig: NextConfig = {
   experimental: {
     serverActions: {

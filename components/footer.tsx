@@ -1,6 +1,7 @@
 "use client";
 
 import { Terminal, Github, Instagram, Facebook, Globe } from "lucide-react";
+import { RealTimeClock } from "@/components/ui/realtime-clock";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -79,9 +80,13 @@ export function Footer() {
 
         <div className="mt-8 pt-8 border-t border-terminal-green/20">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm font-mono text-terminal-text-muted">
-              © {currentYear} Codezela Career Accelerator. All rights reserved.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <p className="text-sm font-mono text-terminal-text-muted">
+                © {currentYear} Codezela Career Accelerator. All rights
+                reserved.
+              </p>
+              <RealTimeClock />
+            </div>
             <p className="text-sm font-mono text-terminal-text-muted">
               Developed with <span className="text-red-500">❤️</span> by{" "}
               <span className="text-terminal-green">Codezela Technologies</span>

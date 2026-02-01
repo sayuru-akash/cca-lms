@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     // Check deadline
     const now = new Date();
     const isOverdue = assignment.dueDate < now;
+
     if (isOverdue && !assignment.allowLateSubmission) {
       return NextResponse.json(
         { error: "Submission deadline has passed" },
