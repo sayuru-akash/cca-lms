@@ -62,10 +62,8 @@ export function SubmissionGrading({
 
   const downloadFile = async (attachment: { id: string; fileKey: string }) => {
     // Open via our proxy endpoint to show our domain URL
-    window.open(
-      `/api/download/${encodeURIComponent(attachment.fileKey)}`,
-      "_blank",
-    );
+    // fileKey is like "submissions/timestamp-file.pdf" - don't encode the slash
+    window.open(`/api/download/${attachment.fileKey}`, "_blank");
   };
 
   const handleGrade = async () => {

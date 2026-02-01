@@ -240,10 +240,10 @@ export function BulkSubmissionActions({
 
           try {
             // Download file content via our proxy endpoint
-            const fileResponse = await fetch(
-              `/api/download/${encodeURIComponent(file.fileKey)}`,
-              { signal: controller.signal },
-            );
+            // fileKey is like "submissions/timestamp-file.pdf" - don't encode the slash
+            const fileResponse = await fetch(`/api/download/${file.fileKey}`, {
+              signal: controller.signal,
+            });
             if (!fileResponse.ok) {
               console.warn(`Failed to download: ${file.fileName}`);
               continue;
