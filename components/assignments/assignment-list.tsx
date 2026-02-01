@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { isDeadlinePassed } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -184,7 +185,7 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
         <div className="grid gap-4">
           {assignments.map((assignment) => {
             const dueDate = new Date(assignment.dueDate);
-            const isOverdue = new Date() > dueDate;
+            const isOverdue = isDeadlinePassed(dueDate);
             const hasSubmission =
               (assignment._count?.assignmentSubmissions ?? 0) > 0;
 

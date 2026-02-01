@@ -83,30 +83,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     // Check if overdue - compare dates in UTC
-    const now = new Date();
     const isOverdue = isDeadlinePassed(assignment.dueDate);
     const canSubmit =
       !isOverdue || (isOverdue && assignment.allowLateSubmission);
-
-    // DEBUG: Log for Vercel troubleshooting
-    console.log(
-      "📅 ASSIGNMENT DEBUG:",
-      JSON.stringify({
-        assignmentId: id,
-        dueDate_raw: assignment.dueDate,
-        dueDate_iso: assignment.dueDate.toISOString(),
-        dueDate_ts: assignment.dueDate.getTime(),
-        now_iso: now.toISOString(),
-        now_ts: now.getTime(),
-        diff_hours: (
-          (assignment.dueDate.getTime() - now.getTime()) /
-          (1000 * 60 * 60)
-        ).toFixed(2),
-        isOverdue,
-        canSubmit,
-        allowLateSubmission: assignment.allowLateSubmission,
-      }),
-    );
 
     return NextResponse.json({
       assignment: {

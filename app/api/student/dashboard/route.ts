@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isDeadlinePassed } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -254,7 +255,7 @@ export async function GET() {
         lessonTitle: assignment.lesson.title,
         courseId: assignment.lesson.module.course.id,
         lessonId: assignment.lesson.id,
-        isOverdue: assignment.dueDate < new Date(),
+        isOverdue: isDeadlinePassed(assignment.dueDate),
         daysUntilDue: Math.ceil(
           (assignment.dueDate.getTime() - new Date().getTime()) /
             (1000 * 60 * 60 * 24),

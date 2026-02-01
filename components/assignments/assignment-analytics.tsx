@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { isDeadlinePassed } from "@/lib/utils";
 import {
   Users,
   CheckCircle,
@@ -98,7 +99,7 @@ export function AssignmentAnalytics({
 
   const { overview, gradeDistribution, notSubmittedStudents } = analytics;
   const dueDate = new Date(analytics.assignment.dueDate);
-  const isOverdue = new Date() > dueDate;
+  const isOverdue = isDeadlinePassed(dueDate);
 
   return (
     <div className="space-y-6">
