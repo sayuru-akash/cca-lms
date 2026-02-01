@@ -30,9 +30,14 @@ import { AssignmentAnalytics } from "./assignment-analytics";
 interface Assignment {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
+  instructions?: string | null;
   dueDate: string;
   maxPoints: number;
+  allowedFileTypes: string[];
+  maxFileSize: number;
+  maxFiles: number;
+  allowLateSubmission: boolean;
   _count?: { submissions: number };
 }
 
@@ -87,7 +92,7 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
         throw new Error(data.error || "Failed to fetch assignments");
       }
 
-      setAssignments(data);
+      setAssignments(data.assignments || []);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to load assignments";
@@ -297,7 +302,7 @@ export function AssignmentList({ lessonId, role }: AssignmentListProps) {
           </DialogHeader>
           <AssignmentForm
             lessonId={lessonId}
-            existingAssignment={editingAssignment}
+            existingAssignment={editingAssignment || undefined}
             userRole={role as "ADMIN" | "LECTURER"}
             onSuccess={() => {
               setShowCreateDialog(false);

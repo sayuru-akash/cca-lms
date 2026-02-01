@@ -17,9 +17,22 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 
+interface Assignment {
+  id: string;
+  title: string;
+  description?: string | null;
+  instructions?: string | null;
+  dueDate: string | Date;
+  maxPoints: number;
+  allowedFileTypes: string[];
+  maxFileSize: number;
+  maxFiles: number;
+  allowLateSubmission: boolean;
+}
+
 interface AssignmentFormProps {
   lessonId: string;
-  existingAssignment?: any;
+  existingAssignment?: Assignment;
   onSuccess?: () => void;
   onCancel?: () => void;
   userRole?: "ADMIN" | "LECTURER";
@@ -59,6 +72,12 @@ export function AssignmentForm({
 
   useEffect(() => {
     if (existingAssignment) {
+      const allowedFileTypes = Array.isArray(
+        existingAssignment.allowedFileTypes,
+      )
+        ? existingAssignment.allowedFileTypes
+        : ["pdf", "docx", "txt", "zip"];
+
       setForm({
         title: existingAssignment.title || "",
         description: existingAssignment.description || "",
@@ -67,12 +86,7 @@ export function AssignmentForm({
           ? new Date(existingAssignment.dueDate).toISOString().slice(0, 16)
           : "",
         maxPoints: existingAssignment.maxPoints || 100,
-        allowedFileTypes: existingAssignment.allowedFileTypes || [
-          "pdf",
-          "docx",
-          "txt",
-          "zip",
-        ],
+        allowedFileTypes,
         maxFileSize: existingAssignment.maxFileSize || 10485760,
         maxFiles: existingAssignment.maxFiles || 5,
         allowLateSubmission: existingAssignment.allowLateSubmission || false,
@@ -81,22 +95,31 @@ export function AssignmentForm({
   }, [existingAssignment]);
 
   const addFileTypes = (types: string[]) => {
-    const newTypes = [...new Set([...form.allowedFileTypes, ...types])];
+    const currentTypes = Array.isArray(form.allowedFileTypes)
+      ? form.allowedFileTypes
+      : [];
+    const newTypes = [...new Set([...currentTypes, ...types])];
     setForm({ ...form, allowedFileTypes: newTypes });
   };
 
   const removeFileType = (type: string) => {
+    const currentTypes = Array.isArray(form.allowedFileTypes)
+      ? form.allowedFileTypes
+      : [];
     setForm({
       ...form,
-      allowedFileTypes: form.allowedFileTypes.filter((t) => t !== type),
+      allowedFileTypes: currentTypes.filter((t) => t !== type),
     });
   };
 
   const addCustomFileType = () => {
-    if (customFileType && !form.allowedFileTypes.includes(customFileType)) {
+    const currentTypes = Array.isArray(form.allowedFileTypes)
+      ? form.allowedFileTypes
+      : [];
+    if (customFileType && !currentTypes.includes(customFileType)) {
       setForm({
         ...form,
-        allowedFileTypes: [...form.allowedFileTypes, customFileType],
+        allowedFileTypes: [...currentTypes, customFileType],
       });
       setCustomFileType("");
     }
@@ -266,7 +289,8 @@ export function AssignmentForm({
           </div>
 
           <div className="flex flex-wrap gap-2 p-3 bg-terminal-darker border border-terminal-border rounded-md min-h-15">
-            {form.allowedFileTypes.length === 0 ? (
+            {!Array.isArray(form.allowedFileTypes) ||
+            form.allowedFileTypes.length === 0 ? (
               <p className="text-sm text-terminal-text-muted">
                 No file types selected
               </p>
