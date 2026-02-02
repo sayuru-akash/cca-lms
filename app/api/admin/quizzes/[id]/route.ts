@@ -70,27 +70,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
     }
 
-    // Authorization check based on role
-    if (session.user.role === "LECTURER") {
-      const isAssigned = quiz.lesson.module.course.lecturers.some(
-        (l) => l.lecturerId === session.user.id,
-      );
-      if (!isAssigned) {
-        return NextResponse.json(
-          { error: "Not authorized for this course" },
-          { status: 403 },
+    // Authorization check - ADMIN has full access
+    if (session.user.role !== "ADMIN") {
+      if (session.user.role === "LECTURER") {
+        const isAssigned = quiz.lesson.module.course.lecturers.some(
+          (l) => l.lecturerId === session.user.id,
         );
-      }
-    } else if (session.user.role === "STUDENT") {
-      const isEnrolled = quiz.lesson.module.course.enrollments.length > 0;
-      if (!isEnrolled) {
+        if (!isAssigned) {
+          return NextResponse.json(
+            { error: "Not authorized for this course" },
+            { status: 403 },
+          );
+        }
+      } else if (session.user.role === "STUDENT") {
+        const isEnrolled = quiz.lesson.module.course.enrollments.length > 0;
+        if (!isEnrolled) {
+          return NextResponse.json(
+            {
+              error: "You must be enrolled in this course to access this quiz",
+            },
+            { status: 403 },
+          );
+        }
+      } else {
         return NextResponse.json(
-          { error: "You must be enrolled in this course to access this quiz" },
+          { error: "Invalid user role" },
           { status: 403 },
         );
       }
     }
-    // ADMIN has full access - no additional check needed
 
     return NextResponse.json({ quiz });
   } catch (error) {

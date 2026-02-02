@@ -60,16 +60,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Check ownership if lecturer
-    if (session.user.role === "LECTURER") {
-      const isAssigned = resource.lesson.module.course.lecturers.some(
-        (l) => l.lecturerId === session.user.id,
-      );
-      if (!isAssigned) {
-        return NextResponse.json(
-          { error: "Not authorized for this course" },
-          { status: 403 },
+    // Authorization check - ADMIN has full access
+    if (session.user.role !== "ADMIN") {
+      if (session.user.role === "LECTURER") {
+        const isAssigned = resource.lesson.module.course.lecturers.some(
+          (l) => l.lecturerId === session.user.id,
         );
+        if (!isAssigned) {
+          return NextResponse.json(
+            { error: "Not authorized for this course" },
+            { status: 403 },
+          );
+        }
+      } else {
+        // STUDENTs and unknown roles cannot access this endpoint
+        return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
       }
     }
 

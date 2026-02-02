@@ -209,22 +209,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Lesson not found" }, { status: 404 });
     }
 
-    // Authorization check
-    if (session.user.role === "LECTURER") {
-      const isAssigned = lesson.module.course.lecturers.some(
-        (l) => l.lecturerId === session.user.id,
-      );
-      if (!isAssigned) {
-        return NextResponse.json(
-          { error: "Not authorized for this course" },
-          { status: 403 },
+    // Authorization check - ADMIN has full access
+    if (session.user.role !== "ADMIN") {
+      if (session.user.role === "LECTURER") {
+        const isAssigned = lesson.module.course.lecturers.some(
+          (l) => l.lecturerId === session.user.id,
         );
-      }
-    } else if (session.user.role === "STUDENT") {
-      const isEnrolled = lesson.module.course.enrollments.length > 0;
-      if (!isEnrolled) {
+        if (!isAssigned) {
+          return NextResponse.json(
+            { error: "Not authorized for this course" },
+            { status: 403 },
+          );
+        }
+      } else if (session.user.role === "STUDENT") {
+        const isEnrolled = lesson.module.course.enrollments.length > 0;
+        if (!isEnrolled) {
+          return NextResponse.json(
+            { error: "You must be enrolled in this course" },
+            { status: 403 },
+          );
+        }
+      } else {
+        // Unknown role - deny access
         return NextResponse.json(
-          { error: "You must be enrolled in this course" },
+          { error: "Invalid user role" },
           { status: 403 },
         );
       }
