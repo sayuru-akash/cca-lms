@@ -130,9 +130,11 @@ export default function UsersClient() {
   // Skip Turnstile in development mode (defaults to production if not set)
   const isDevelopment =
     (process.env.NODE_ENV || "production") === "development";
+  console.log('isDevelopment:', isDevelopment, 'NODE_ENV:', process.env.NODE_ENV);
 
   // Turnstile callbacks for create form
   const handleCreateTurnstileSuccess = (token: string) => {
+    console.log('Turnstile success, token received');
     setCreateTurnstileToken(token);
   };
 
@@ -151,8 +153,11 @@ export default function UsersClient() {
     // Skip Turnstile in development mode
     if (isDevelopment) return;
 
+    console.log('Initializing Turnstile for create dialog');
+
     const initTurnstile = () => {
       if ((window as any).turnstile && createTurnstileRef.current) {
+        console.log('Turnstile loaded, rendering widget');
         createTurnstileWidgetIdRef.current = (window as any).turnstile.render(
           createTurnstileRef.current,
           {
@@ -163,6 +168,8 @@ export default function UsersClient() {
             theme: "dark",
           },
         );
+      } else {
+        console.log('Turnstile not ready or ref null');
       }
     };
 
@@ -170,6 +177,7 @@ export default function UsersClient() {
     if ((window as any).turnstile) {
       initTurnstile();
     } else {
+      console.log('Turnstile not loaded yet, waiting...');
       // Wait for Turnstile to load
       const checkTurnstile = setInterval(() => {
         if ((window as any).turnstile) {
@@ -181,6 +189,7 @@ export default function UsersClient() {
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkTurnstile);
+        console.log('Turnstile load timeout');
       }, 10000);
     }
 
