@@ -358,39 +358,45 @@ export async function DELETE(
 
       // Clean up R2 files (lesson resources)
       const r2Errors: string[] = [];
-      for (const resource of lessonResources) {
-        if (!resource.fileKey) continue; // Skip if no fileKey
-        try {
-          await deleteFromR2(resource.fileKey);
-        } catch (err) {
-          console.error(`Failed to delete R2 file ${resource.fileKey}:`, err);
-          r2Errors.push(resource.fileKey);
-        }
-      }
+      await Promise.all(
+        lessonResources.map(async (resource) => {
+          if (!resource.fileKey) return; // Skip if no fileKey
+          try {
+            await deleteFromR2(resource.fileKey);
+          } catch (err) {
+            console.error(`Failed to delete R2 file ${resource.fileKey}:`, err);
+            r2Errors.push(resource.fileKey);
+          }
+        }),
+      );
 
       // Clean up legacy R2 files (old submission attachments)
-      for (const file of legacySubmissionFiles) {
-        try {
-          await deleteFromR2(file.fileKey);
-        } catch (err) {
-          console.error(
-            `Failed to delete legacy R2 file ${file.fileKey}:`,
-            err,
-          );
-          r2Errors.push(file.fileKey);
-        }
-      }
+      await Promise.all(
+        legacySubmissionFiles.map(async (file) => {
+          try {
+            await deleteFromR2(file.fileKey);
+          } catch (err) {
+            console.error(
+              `Failed to delete legacy R2 file ${file.fileKey}:`,
+              err,
+            );
+            r2Errors.push(file.fileKey);
+          }
+        }),
+      );
 
       // Clean up B2 files (submission files)
       const b2Errors: string[] = [];
-      for (const file of submissionFiles) {
-        try {
-          await deleteFromB2(file.fileKey, file.fileId);
-        } catch (err) {
-          console.error(`Failed to delete B2 file ${file.fileKey}:`, err);
-          b2Errors.push(file.fileKey);
-        }
-      }
+      await Promise.all(
+        submissionFiles.map(async (file) => {
+          try {
+            await deleteFromB2(file.fileKey, file.fileId);
+          } catch (err) {
+            console.error(`Failed to delete B2 file ${file.fileKey}:`, err);
+            b2Errors.push(file.fileKey);
+          }
+        }),
+      );
 
       // Audit log for permanent deletion
       await auditActions.programmeDeleted(
