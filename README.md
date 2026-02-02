@@ -1434,7 +1434,7 @@ We welcome contributions from the community!
 
 ## 📄 License
 
-This project is proprietary software developed by **Codezela Technologies**.
+This project is proprietary software developed by **Codezela Technologies** for **Codezela Career Accelerator**.
 
 Copyright © 2024-2026 Codezela Technologies. All rights reserved.
 
