@@ -142,6 +142,8 @@ export default function UsersClient() {
 
   // Expose create callbacks to window for Turnstile
   useEffect(() => {
+    if (!showCreateDialog) return;
+
     const initTurnstile = () => {
       if ((window as any).turnstile && createTurnstileRef.current) {
         createTurnstileWidgetIdRef.current = (window as any).turnstile.render(
@@ -180,7 +182,7 @@ export default function UsersClient() {
         (window as any).turnstile.remove(createTurnstileWidgetIdRef.current);
       }
     };
-  }, []);
+  }, [showCreateDialog]);
 
   // Function to reset create CAPTCHA widget
   const resetCreateCaptcha = () => {
@@ -631,6 +633,7 @@ export default function UsersClient() {
 
   const openCreateDialog = () => {
     setCreateForm((prev) => ({ ...prev, role: activeTab }));
+    setCreateTurnstileToken(null);
     setShowCreateDialog(true);
   };
 
