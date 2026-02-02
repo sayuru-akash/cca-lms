@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { sanitizeHtml } from "@/lib/security";
 
 interface Resource {
   id: string;
@@ -445,7 +446,7 @@ export function ResourceManager({
                     {resource.type === "EMBEDDED" && resource.embedCode && (
                       <div
                         className="mt-3 rounded border border-terminal-green/20 overflow-hidden"
-                        dangerouslySetInnerHTML={{ __html: resource.embedCode }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(resource.embedCode) }}
                       />
                     )}
 

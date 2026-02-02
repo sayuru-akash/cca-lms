@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AssignmentList } from "@/components/assignments/assignment-list";
 import { toast } from "sonner";
+import { sanitizeHtml } from "@/lib/security";
 
 interface Resource {
   id: string;
@@ -127,7 +128,7 @@ const renderResource = (resource: Resource): React.ReactElement => {
             <div
               className="prose prose-invert prose-terminal max-w-none"
               dangerouslySetInnerHTML={{
-                __html: resource.textContent || "",
+                __html: sanitizeHtml(resource.textContent),
               }}
             />
           </CardContent>
@@ -151,7 +152,7 @@ const renderResource = (resource: Resource): React.ReactElement => {
             <CardContent className="p-0">
               <div className="aspect-video bg-terminal-darker rounded-b-lg overflow-hidden">
                 <div
-                  dangerouslySetInnerHTML={{ __html: resource.embedCode }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(resource.embedCode) }}
                   className="w-full h-full"
                 />
               </div>
