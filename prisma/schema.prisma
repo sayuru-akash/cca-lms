@@ -610,6 +610,7 @@ enum AuditAction {
   USER_DELETED
   USER_LOGIN
   USER_LOGOUT
+  PASSWORD_RESET_REQUESTED
 
   // Course actions
   COURSE_CREATED

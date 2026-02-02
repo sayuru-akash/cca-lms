@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     // Log the request
     await createAuditLog({
       userId: user.id,
-      action: "USER_UPDATED", // TODO: add PASSWORD_RESET_REQUESTED to enum
+      action: "PASSWORD_RESET_REQUESTED",
       entityType: "User",
       entityId: user.id,
       metadata: { action: "password_reset_requested" },
