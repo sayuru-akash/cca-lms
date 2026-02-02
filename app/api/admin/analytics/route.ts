@@ -196,24 +196,29 @@ export async function GET(request: Request) {
         ),
 
       // Programme completion rates (students only)
-      prisma.course.findMany({
-        where: programmeId ? { id: programmeId } : { status: "PUBLISHED" },
-        select: {
-          id: true,
-          title: true,
-          enrollments: {
-            where: {
-              enrolledAt: { lte: endDate },
-              user: { role: "STUDENT" },
-            },
-            select: {
-              status: true,
-              progress: true,
-            },
-          },
-        },
-        take: programmeId ? 1 : 10,
-      }),
+      prisma.$queryRaw<
+        Array<{
+          id: string;
+          title: string;
+          totalEnrollments: number;
+          completedEnrollments: number;
+          averageProgress: number;
+        }>
+      >`
+        SELECT
+            c.id,
+            c.title,
+            COUNT(CASE WHEN u.role = 'STUDENT' THEN 1 END)::int as "totalEnrollments",
+            COUNT(CASE WHEN u.role = 'STUDENT' AND ce.status = 'COMPLETED' THEN 1 END)::int as "completedEnrollments",
+            COALESCE(AVG(CASE WHEN u.role = 'STUDENT' THEN ce.progress END), 0)::float as "averageProgress"
+        FROM "Course" c
+        LEFT JOIN "CourseEnrollment" ce ON c.id = ce."courseId" AND ce."enrolledAt" <= ${endDate}
+        LEFT JOIN "User" u ON ce."userId" = u.id
+        WHERE (${programmeId || null}::text IS NULL OR c.id = ${programmeId || null})
+          AND (${programmeId || null}::text IS NOT NULL OR c.status = 'PUBLISHED')
+        GROUP BY c.id, c.title
+        LIMIT ${programmeId ? 1 : 10}
+      `,
 
       // Total submissions
       prisma.submission.count({
@@ -467,25 +472,17 @@ export async function GET(request: Request) {
 
     // Calculate programme performance metrics
     const programmePerformance = programmeCompletionRates.map((programme) => {
-      const total = programme.enrollments.length;
-      const completed = programme.enrollments.filter(
-        (e) => e.status === "COMPLETED",
-      ).length;
-      const avgProgrammeProgress =
-        total > 0
-          ? programme.enrollments.reduce(
-              (sum, e) => sum + (e.progress || 0),
-              0,
-            ) / total
-          : 0;
-
       return {
         id: programme.id,
         title: programme.title,
-        totalEnrollments: total,
-        completedEnrollments: completed,
-        completionRate: total > 0 ? (completed / total) * 100 : 0,
-        averageProgress: avgProgrammeProgress,
+        totalEnrollments: programme.totalEnrollments,
+        completedEnrollments: programme.completedEnrollments,
+        completionRate:
+          programme.totalEnrollments > 0
+            ? (programme.completedEnrollments / programme.totalEnrollments) *
+              100
+            : 0,
+        averageProgress: programme.averageProgress,
       };
     });
 
