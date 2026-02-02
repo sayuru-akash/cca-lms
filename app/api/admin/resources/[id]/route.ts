@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   uploadToR2,
   getSignedUrl,
@@ -90,8 +91,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const description = formData.get("description") as string | null;
     const type = formData.get("type") as string | null;
     const externalUrl = formData.get("externalUrl") as string | null;
-    const embedCode = formData.get("embedCode") as string | null;
-    const textContent = formData.get("textContent") as string | null;
+    const rawEmbedCode = formData.get("embedCode") as string | null;
+    const rawTextContent = formData.get("textContent") as string | null;
+
+    // Sanitize HTML content to prevent XSS
+    const embedCode = rawEmbedCode ? sanitizeHtml(rawEmbedCode) : null;
+    const textContent = rawTextContent ? sanitizeHtml(rawTextContent) : null;
+
     const visibility = formData.get("visibility") as string | null;
     const downloadable = formData.get("downloadable");
     const tags = formData.get("tags")
