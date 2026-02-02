@@ -60,6 +60,7 @@ interface Resource {
   downloadable: boolean;
   order: number;
   createdAt: string;
+  signedUrl?: string; // Pre-signed download URL from API
 }
 
 interface ResourceManagerProps {
@@ -142,18 +143,13 @@ export function ResourceManager({
   const handleDownload = async (resource: Resource) => {
     if (!resource.fileKey) return;
 
-    try {
-      const response = await fetch(
-        `/api/admin/resources/${resource.id}/download`,
-      );
-      if (!response.ok) throw new Error("Failed to get download URL");
-
-      const data = await response.json();
-      window.open(data.url, "_blank");
-    } catch (error) {
-      toast.error("Failed to download file");
-      console.error(error);
+    // Use pre-signed URL from list response
+    if (resource.signedUrl) {
+      window.open(resource.signedUrl, "_blank");
+      return;
     }
+
+    toast.error("Download URL not available");
   };
 
   const formatFileSize = (bytes: number | null) => {
@@ -446,7 +442,9 @@ export function ResourceManager({
                     {resource.type === "EMBEDDED" && resource.embedCode && (
                       <div
                         className="mt-3 rounded border border-terminal-green/20 overflow-hidden"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(resource.embedCode) }}
+                        dangerouslySetInnerHTML={{
+                          __html: sanitizeHtml(resource.embedCode),
+                        }}
                       />
                     )}
 
