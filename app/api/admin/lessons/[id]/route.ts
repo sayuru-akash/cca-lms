@@ -249,22 +249,26 @@ export async function DELETE(
     });
 
     // Clean up R2 files (resources) - don't fail if cleanup fails
-    for (const fileKey of r2FileKeys) {
-      try {
-        await deleteFromR2(fileKey);
-      } catch (error) {
-        console.error(`Failed to delete R2 file ${fileKey}:`, error);
-      }
-    }
+    await Promise.allSettled(
+      r2FileKeys.map(async (fileKey) => {
+        try {
+          await deleteFromR2(fileKey);
+        } catch (error) {
+          console.error(`Failed to delete R2 file ${fileKey}:`, error);
+        }
+      }),
+    );
 
     // Clean up B2 files (submissions) - don't fail if cleanup fails
-    for (const fileKey of b2FileKeys) {
-      try {
-        await deleteFromB2(fileKey);
-      } catch (error) {
-        console.error(`Failed to delete B2 file ${fileKey}:`, error);
-      }
-    }
+    await Promise.allSettled(
+      b2FileKeys.map(async (fileKey) => {
+        try {
+          await deleteFromB2(fileKey);
+        } catch (error) {
+          console.error(`Failed to delete B2 file ${fileKey}:`, error);
+        }
+      }),
+    );
 
     return NextResponse.json({
       message: "Lesson deleted successfully",

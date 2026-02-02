@@ -20,46 +20,138 @@ export async function GET() {
 
     const userId = session.user.id;
 
-    // Fetch student's enrollments with course details
-    const enrollments = await prisma.courseEnrollment.findMany({
-      where: {
-        userId,
-        status: { in: ["ACTIVE", "COMPLETED"] },
-      },
-      include: {
-        course: {
+    // Parallelize independent queries to improve performance
+    // Bolt: Batched 4 independent DB queries into a single Promise.all
+    const [enrollments, lessonProgress, recentCompletions, upcomingAssignments] =
+      await Promise.all([
+        // Fetch student's enrollments with course details
+        prisma.courseEnrollment.findMany({
+          where: {
+            userId,
+            status: { in: ["ACTIVE", "COMPLETED"] },
+          },
           include: {
-            modules: {
-              orderBy: { order: "asc" },
+            course: {
               include: {
-                lessons: {
+                modules: {
                   orderBy: { order: "asc" },
-                  select: {
-                    id: true,
-                    title: true,
-                    type: true,
-                    duration: true,
-                    isPublished: true,
+                  include: {
+                    lessons: {
+                      orderBy: { order: "asc" },
+                      select: {
+                        id: true,
+                        title: true,
+                        type: true,
+                        duration: true,
+                        isPublished: true,
+                      },
+                    },
                   },
                 },
               },
             },
           },
-        },
-      },
-      orderBy: { lastAccessedAt: "desc" },
-    });
+          orderBy: { lastAccessedAt: "desc" },
+        }),
 
-    // Fetch lesson progress for the student
-    const lessonProgress = await prisma.lessonProgress.findMany({
-      where: { userId },
-      select: {
-        lessonId: true,
-        completed: true,
-        watchedSeconds: true,
-        lastAccessedAt: true,
-      },
-    });
+        // Fetch lesson progress for the student
+        prisma.lessonProgress.findMany({
+          where: { userId },
+          select: {
+            lessonId: true,
+            completed: true,
+            watchedSeconds: true,
+            lastAccessedAt: true,
+          },
+        }),
+
+        // Get recent activity (completed lessons)
+        prisma.lessonProgress.findMany({
+          where: {
+            userId,
+            completed: true,
+          },
+          include: {
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                module: {
+                  select: {
+                    title: true,
+                    course: {
+                      select: {
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { lastAccessedAt: "desc" },
+          take: 10,
+        }),
+
+        // Fetch upcoming assignments
+        prisma.assignment.findMany({
+          where: {
+            lesson: {
+              module: {
+                course: {
+                  enrollments: {
+                    some: {
+                      userId,
+                      status: "ACTIVE",
+                    },
+                  },
+                },
+              },
+            },
+            dueDate: {
+              gte: new Date(),
+            },
+            // Only show assignments without submissions or draft submissions
+            assignmentSubmissions: {
+              none: {
+                userId,
+                status: {
+                  in: ["SUBMITTED", "GRADED"],
+                },
+              },
+            },
+          },
+          include: {
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                module: {
+                  select: {
+                    title: true,
+                    course: {
+                      select: {
+                        id: true,
+                        title: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            assignmentSubmissions: {
+              where: { userId },
+              select: {
+                status: true,
+              },
+            },
+          },
+          orderBy: {
+            dueDate: "asc",
+          },
+          take: 5,
+        }),
+      ]);
 
     // Create a map for quick lesson progress lookup
     const progressMap = new Map(lessonProgress.map((p) => [p.lessonId, p]));
@@ -137,34 +229,6 @@ export async function GET() {
       };
     });
 
-    // Get recent activity (completed lessons)
-    const recentCompletions = await prisma.lessonProgress.findMany({
-      where: {
-        userId,
-        completed: true,
-      },
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            module: {
-              select: {
-                title: true,
-                course: {
-                  select: {
-                    title: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { lastAccessedAt: "desc" },
-      take: 10,
-    });
-
     const recentActivity = recentCompletions.map((completion) => ({
       id: completion.id,
       type: "LESSON_COMPLETED",
@@ -183,65 +247,6 @@ export async function GET() {
       totalEnrolled > 0
         ? enrollments.reduce((sum, e) => sum + e.progress, 0) / totalEnrolled
         : 0;
-
-    // Fetch upcoming assignments
-    const upcomingAssignments = await prisma.assignment.findMany({
-      where: {
-        lesson: {
-          module: {
-            course: {
-              enrollments: {
-                some: {
-                  userId,
-                  status: "ACTIVE",
-                },
-              },
-            },
-          },
-        },
-        dueDate: {
-          gte: new Date(),
-        },
-        // Only show assignments without submissions or draft submissions
-        assignmentSubmissions: {
-          none: {
-            userId,
-            status: {
-              in: ["SUBMITTED", "GRADED"],
-            },
-          },
-        },
-      },
-      include: {
-        lesson: {
-          select: {
-            id: true,
-            title: true,
-            module: {
-              select: {
-                title: true,
-                course: {
-                  select: {
-                    id: true,
-                    title: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        assignmentSubmissions: {
-          where: { userId },
-          select: {
-            status: true,
-          },
-        },
-      },
-      orderBy: {
-        dueDate: "asc",
-      },
-      take: 5,
-    });
 
     return NextResponse.json({
       programmes,

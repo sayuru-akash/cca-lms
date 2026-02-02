@@ -68,53 +68,60 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    let totalRemindersSent = 0;
+    // Process each assignment concurrently
+    const reminderResults = await Promise.all(
+      assignmentsDueSoon.map(async (assignment) => {
+        const enrolledStudents = assignment.lesson.module.course.enrollments;
+        const submittedUserIds = new Set(
+          assignment.assignmentSubmissions
+            .filter(
+              (sub) => sub.status === "SUBMITTED" || sub.status === "GRADED",
+            )
+            .map((sub) => sub.userId),
+        );
 
-    // Process each assignment
-    for (const assignment of assignmentsDueSoon) {
-      const enrolledStudents = assignment.lesson.module.course.enrollments;
-      const submittedUserIds = new Set(
-        assignment.assignmentSubmissions
-          .filter(
-            (sub) => sub.status === "SUBMITTED" || sub.status === "GRADED",
-          )
-          .map((sub) => sub.userId),
-      );
+        // Find students who haven't submitted yet
+        const studentsWithoutSubmission = enrolledStudents
+          .filter((enrollment) => !submittedUserIds.has(enrollment.user.id))
+          .map((enrollment) => ({
+            name: enrollment.user.name || enrollment.user.email,
+            email: enrollment.user.email,
+            id: enrollment.user.id,
+          }));
 
-      // Find students who haven't submitted yet
-      const studentsWithoutSubmission = enrolledStudents
-        .filter((enrollment) => !submittedUserIds.has(enrollment.user.id))
-        .map((enrollment) => ({
-          name: enrollment.user.name || enrollment.user.email,
-          email: enrollment.user.email,
-          id: enrollment.user.id,
-        }));
+        if (studentsWithoutSubmission.length > 0) {
+          try {
+            await sendAssignmentDueSoonReminders(
+              {
+                studentName: "", // Not used for bulk emails
+                studentEmail: "", // Not used for bulk emails
+                assignmentTitle: assignment.title,
+                courseTitle: assignment.lesson.module.course.title,
+                dueDate: assignment.dueDate,
+                assignmentId: assignment.id,
+                courseId: assignment.lesson.module.course.id,
+                lessonId: assignment.lesson.id,
+              },
+              studentsWithoutSubmission,
+            );
 
-      if (studentsWithoutSubmission.length > 0) {
-        try {
-          await sendAssignmentDueSoonReminders(
-            {
-              studentName: "", // Not used for bulk emails
-              studentEmail: "", // Not used for bulk emails
-              assignmentTitle: assignment.title,
-              courseTitle: assignment.lesson.module.course.title,
-              dueDate: assignment.dueDate,
-              assignmentId: assignment.id,
-              courseId: assignment.lesson.module.course.id,
-              lessonId: assignment.lesson.id,
-            },
-            studentsWithoutSubmission,
-          );
-
-          totalRemindersSent += studentsWithoutSubmission.length;
-        } catch (error) {
-          console.error(
-            `Failed to send reminders for assignment ${assignment.id}:`,
-            error,
-          );
+            return studentsWithoutSubmission.length;
+          } catch (error) {
+            console.error(
+              `Failed to send reminders for assignment ${assignment.id}:`,
+              error,
+            );
+            return 0;
+          }
         }
-      }
-    }
+        return 0;
+      }),
+    );
+
+    const totalRemindersSent = reminderResults.reduce(
+      (acc, count) => acc + count,
+      0,
+    );
 
     return NextResponse.json({
       success: true,
