@@ -102,16 +102,8 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Audit log for each assignment
-      await Promise.all(
-        created.map((assignment) =>
-          auditActions.programmeEnrollmentCreated(
-            session.user.id,
-            assignment.id,
-            assignment.course.title,
-          ),
-        ),
-      );
+      // Audit log for assignments
+      await auditActions.programmeEnrollmentsCreated(session.user.id, created);
 
       return NextResponse.json({
         created: created.length,
@@ -175,16 +167,8 @@ export async function POST(request: NextRequest) {
         ),
       );
 
-      // Audit log for each enrollment
-      await Promise.all(
-        created.map((enrollment) =>
-          auditActions.programmeEnrollmentCreated(
-            session.user.id,
-            enrollment.id,
-            enrollment.course.title,
-          ),
-        ),
-      );
+      // Audit log for enrollments
+      await auditActions.programmeEnrollmentsCreated(session.user.id, created);
 
       return NextResponse.json({
         created: created.length,

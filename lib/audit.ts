@@ -33,6 +33,40 @@ export async function createAuditLog(data: {
 }
 
 /**
+ * Create multiple audit log entries (bulk optimization)
+ * @param logs - Array of audit log data
+ */
+export async function createAuditLogs(
+  logs: {
+    userId?: string;
+    action: AuditAction;
+    entityType: string;
+    entityId?: string;
+    metadata?: Record<string, unknown>;
+    ipAddress?: string;
+    userAgent?: string;
+  }[],
+) {
+  if (logs.length === 0) return;
+
+  try {
+    await prisma.auditLog.createMany({
+      data: logs.map((log) => ({
+        userId: log.userId,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId,
+        metadata: log.metadata as Prisma.InputJsonValue,
+        ipAddress: log.ipAddress,
+        userAgent: log.userAgent,
+      })),
+    });
+  } catch (error) {
+    console.error("Failed to create audit logs:", error);
+  }
+}
+
+/**
  * Create an audit log entry with request context
  * @param data - Audit log data
  * @param request - Request object (for IP and user agent)
@@ -290,6 +324,20 @@ export const auditActions = {
       entityId: enrollmentId,
       metadata: { programmeTitle },
     }),
+
+  programmeEnrollmentsCreated: (
+    userId: string,
+    enrollments: { id: string; course: { title: string } }[],
+  ) =>
+    createAuditLogs(
+      enrollments.map((enrollment) => ({
+        userId,
+        action: "ENROLLMENT_CREATED",
+        entityType: "CourseEnrollment",
+        entityId: enrollment.id,
+        metadata: { programmeTitle: enrollment.course.title },
+      })),
+    ),
 
   programmeEnrollmentDeleted: (
     userId: string,
