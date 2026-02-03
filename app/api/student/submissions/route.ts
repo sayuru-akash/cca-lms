@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadToB2, deleteFromB2 } from "@/lib/b2";
 import { createAuditLog } from "@/lib/audit";
 import { isDeadlinePassed } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 // POST /api/student/submissions - Create or update submission
 export async function POST(request: NextRequest) {
@@ -16,7 +17,8 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const assignmentId = formData.get("assignmentId") as string;
-    const content = formData.get("content") as string | null;
+    const rawContent = formData.get("content") as string | null;
+    const content = rawContent ? sanitizeHtml(rawContent) : null;
     const files = formData.getAll("files") as File[];
 
     if (!assignmentId) {
