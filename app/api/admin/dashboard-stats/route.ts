@@ -30,6 +30,7 @@ export async function GET() {
       totalSubmissions,
       pendingGrading,
       overdueAssignments,
+      enrollmentsByProgramme,
     ] = await Promise.all([
       // Count students
       prisma.user.count({
@@ -111,34 +112,34 @@ export async function GET() {
           },
         },
       }),
-    ]);
 
-    // Get enrollments per programme (top 5)
-    const enrollmentsByProgramme = await prisma.course.findMany({
-      where: { status: { not: "ARCHIVED" } },
-      take: 5,
-      select: {
-        id: true,
-        title: true,
-        _count: {
-          select: {
-            enrollments: {
-              where: {
-                status: "ACTIVE",
-                user: {
-                  role: "STUDENT",
+      // Get enrollments per programme (top 5)
+      prisma.course.findMany({
+        where: { status: { not: "ARCHIVED" } },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          _count: {
+            select: {
+              enrollments: {
+                where: {
+                  status: "ACTIVE",
+                  user: {
+                    role: "STUDENT",
+                  },
                 },
               },
             },
           },
         },
-      },
-      orderBy: {
-        enrollments: {
-          _count: "desc",
+        orderBy: {
+          enrollments: {
+            _count: "desc",
+          },
         },
-      },
-    });
+      }),
+    ]);
 
     return NextResponse.json({
       stats: {
