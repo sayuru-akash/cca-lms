@@ -19,6 +19,16 @@ import {
   Filter,
 } from "lucide-react";
 import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -182,6 +192,29 @@ export default function AnalyticsPage() {
     if (trend > 0) return "text-terminal-green";
     if (trend < 0) return "text-red-400";
     return "text-terminal-text-muted";
+  };
+
+  // Custom tooltip component for charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dataKey = payload[0].dataKey;
+      const value = payload[0].value;
+      const labelText =
+        dataKey === "enrollments" ? "enrollments" : "active users";
+
+      return (
+        <div className="bg-card border border-border rounded-md p-3 shadow-lg">
+          <p className="font-mono text-sm text-muted-foreground mb-1">
+            {format(new Date(label), "MMM dd, yyyy")}
+          </p>
+          <p className="font-mono text-sm text-foreground">
+            <span className="font-semibold text-chart-1">{value}</span>{" "}
+            {labelText}
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   const fillMissingDates = (
@@ -713,62 +746,69 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 {analytics.trends.dailyEnrollments.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-terminal-text-muted font-mono text-sm">
+                  <div className="h-64 flex items-center justify-center text-terminal-text-muted font-mono text-sm">
                     No enrollment data available
                   </div>
                 ) : (
-                  <div className="relative h-48 flex items-end justify-between gap-0.5 p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50">
-                    {/* Background grid lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                      {[0, 1, 2, 3, 4].map((line) => (
-                        <div
-                          key={line}
-                          className="w-full border-t border-terminal-green/10"
-                          style={{ top: `${line * 25}%` }}
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={fillMissingDates(
+                          analytics.trends.dailyEnrollments,
+                          30,
+                        ).map((item) => ({
+                          date: item.date,
+                          enrollments: item.count,
+                        }))}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="hsl(var(--border))"
+                          vertical={false}
                         />
-                      ))}
-                    </div>
-                    {(() => {
-                      const filledData = fillMissingDates(
-                        analytics.trends.dailyEnrollments,
-                        30,
-                      );
-                      const maxCount = Math.max(
-                        ...filledData.map((d) => d.count),
-                      );
-                      return filledData.map((day, index) => {
-                        const height =
-                          maxCount > 0 ? (day.count / maxCount) * 100 : 0;
-                        const hasData = day.count > 0;
-                        return (
-                          <div
-                            key={index}
-                            className="flex-1 flex flex-col items-center gap-1 group relative z-10"
-                          >
-                            <div
-                              className={`w-full rounded-t-sm transition-all duration-200 cursor-pointer shadow-sm ${
-                                hasData
-                                  ? "bg-terminal-green hover:bg-terminal-green-light hover:shadow-md"
-                                  : "bg-terminal-green/20 hover:bg-terminal-green/30"
-                              }`}
-                              style={{
-                                height: `${Math.max(height, 0.5)}%`,
-                                minHeight: hasData ? "3px" : "1px",
-                              }}
-                            >
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 whitespace-nowrap">
-                                <Badge
-                                  variant="success"
-                                  className="text-xs font-mono"
-                                >
-                                  {day.count}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
+                        <XAxis
+                          dataKey="date"
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          fontFamily="monospace"
+                          tickFormatter={(value) =>
+                            format(new Date(value), "MM/dd")
+                          }
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          fontFamily="monospace"
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="enrollments"
+                          fill="hsl(var(--chart-1))"
+                          radius={[2, 2, 0, 0]}
+                        >
+                          {fillMissingDates(
+                            analytics.trends.dailyEnrollments,
+                            30,
+                          ).map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.count > 0
+                                  ? "hsl(var(--chart-1))"
+                                  : "hsl(var(--chart-1) / 0.3)"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </CardContent>
@@ -785,62 +825,69 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 {analytics.trends.dailyLogins.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-terminal-text-muted font-mono text-sm">
+                  <div className="h-64 flex items-center justify-center text-terminal-text-muted font-mono text-sm">
                     No login data available
                   </div>
                 ) : (
-                  <div className="relative h-48 flex items-end justify-between gap-0.5 p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50">
-                    {/* Background grid lines */}
-                    <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                      {[0, 1, 2, 3, 4].map((line) => (
-                        <div
-                          key={line}
-                          className="w-full border-t border-terminal-green/10"
-                          style={{ top: `${line * 25}%` }}
+                  <div className="h-64 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={fillMissingDates(
+                          analytics.trends.dailyLogins,
+                          30,
+                        ).map((item) => ({
+                          date: item.date,
+                          logins: item.count,
+                        }))}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="hsl(var(--border))"
+                          vertical={false}
                         />
-                      ))}
-                    </div>
-                    {(() => {
-                      const filledData = fillMissingDates(
-                        analytics.trends.dailyLogins,
-                        30,
-                      );
-                      const maxCount = Math.max(
-                        ...filledData.map((d) => d.count),
-                      );
-                      return filledData.map((day, index) => {
-                        const height =
-                          maxCount > 0 ? (day.count / maxCount) * 100 : 0;
-                        const hasData = day.count > 0;
-                        return (
-                          <div
-                            key={index}
-                            className="flex-1 flex flex-col items-center gap-1 group relative z-10"
-                          >
-                            <div
-                              className={`w-full rounded-t-sm transition-all duration-200 cursor-pointer shadow-sm ${
-                                hasData
-                                  ? "bg-blue-400 hover:bg-blue-300 hover:shadow-md"
-                                  : "bg-blue-400/20 hover:bg-blue-400/30"
-                              }`}
-                              style={{
-                                height: `${Math.max(height, 0.5)}%`,
-                                minHeight: hasData ? "3px" : "1px",
-                              }}
-                            >
-                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 whitespace-nowrap">
-                                <Badge
-                                  variant="info"
-                                  className="text-xs font-mono"
-                                >
-                                  {day.count}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
+                        <XAxis
+                          dataKey="date"
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          fontFamily="monospace"
+                          tickFormatter={(value) =>
+                            format(new Date(value), "MM/dd")
+                          }
+                          interval="preserveStartEnd"
+                        />
+                        <YAxis
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          fontFamily="monospace"
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar
+                          dataKey="logins"
+                          fill="hsl(var(--chart-3))"
+                          radius={[2, 2, 0, 0]}
+                        >
+                          {fillMissingDates(
+                            analytics.trends.dailyLogins,
+                            30,
+                          ).map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.count > 0
+                                  ? "hsl(var(--chart-3))"
+                                  : "hsl(var(--chart-3) / 0.3)"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 )}
               </CardContent>
