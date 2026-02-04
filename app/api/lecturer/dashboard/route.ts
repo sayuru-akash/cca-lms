@@ -12,160 +12,171 @@ export async function GET() {
 
     const lecturerId = session.user.id;
 
-    // Get lecturer's courses from CourseLecturer table
-    const courses = await prisma.course.findMany({
-      where: {
-        lecturers: {
-          some: {
-            lecturerId,
-          },
-        },
-      },
-      include: {
-        _count: {
-          select: {
-            enrollments: {
-              where: {
-                user: {
-                  role: "STUDENT",
-                },
-              },
-            },
-            modules: true,
-          },
-        },
-      },
-    });
-
-    // Get total enrolled students across all courses (students only)
-    const totalStudents = await prisma.courseEnrollment.count({
-      where: {
-        course: {
+    // Parallelize independent queries to improve performance
+    // Bolt: Batched 6 independent DB queries into a single Promise.all
+    const [
+      courses,
+      totalStudents,
+      totalModules,
+      recentEnrollments,
+      pendingGrading,
+      pendingSubmissions,
+    ] = await Promise.all([
+      // Get lecturer's courses from CourseLecturer table
+      prisma.course.findMany({
+        where: {
           lecturers: {
             some: {
               lecturerId,
             },
           },
         },
-        status: {
-          in: ["ACTIVE", "COMPLETED"],
-        },
-        user: {
-          role: "STUDENT",
-        },
-      },
-    });
-
-    // Get total modules
-    const totalModules = await prisma.module.count({
-      where: {
-        course: {
-          lecturers: {
-            some: {
-              lecturerId,
-            },
-          },
-        },
-      },
-    });
-
-    // Get recent enrollments (students only)
-    const recentEnrollments = await prisma.courseEnrollment.findMany({
-      where: {
-        course: {
-          lecturers: {
-            some: {
-              lecturerId,
-            },
-          },
-        },
-        user: {
-          role: "STUDENT",
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        course: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
-      orderBy: {
-        enrolledAt: "desc",
-      },
-      take: 5,
-    });
-
-    // Get pending grading count
-    const pendingGrading = await prisma.assignmentSubmission.count({
-      where: {
-        assignment: {
-          lesson: {
-            module: {
-              course: {
-                lecturers: {
-                  some: {
-                    lecturerId,
+        include: {
+          _count: {
+            select: {
+              enrollments: {
+                where: {
+                  user: {
+                    role: "STUDENT",
                   },
                 },
               },
+              modules: true,
             },
           },
         },
-        status: "SUBMITTED",
-        grade: null,
-      },
-    });
+      }),
 
-    // Get recent submissions requiring grading
-    const pendingSubmissions = await prisma.assignmentSubmission.findMany({
-      where: {
-        assignment: {
-          lesson: {
-            module: {
-              course: {
-                lecturers: {
-                  some: {
-                    lecturerId,
-                  },
-                },
+      // Get total enrolled students across all courses (students only)
+      prisma.courseEnrollment.count({
+        where: {
+          course: {
+            lecturers: {
+              some: {
+                lecturerId,
+              },
+            },
+          },
+          status: {
+            in: ["ACTIVE", "COMPLETED"],
+          },
+          user: {
+            role: "STUDENT",
+          },
+        },
+      }),
+
+      // Get total modules
+      prisma.module.count({
+        where: {
+          course: {
+            lecturers: {
+              some: {
+                lecturerId,
               },
             },
           },
         },
-        status: "SUBMITTED",
-        grade: null,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+      }),
+
+      // Get recent enrollments (students only)
+      prisma.courseEnrollment.findMany({
+        where: {
+          course: {
+            lecturers: {
+              some: {
+                lecturerId,
+              },
+            },
+          },
+          user: {
+            role: "STUDENT",
           },
         },
-        assignment: {
-          select: {
-            id: true,
-            title: true,
-            dueDate: true,
-            maxPoints: true,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          course: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+        },
+        orderBy: {
+          enrolledAt: "desc",
+        },
+        take: 5,
+      }),
+
+      // Get pending grading count
+      prisma.assignmentSubmission.count({
+        where: {
+          assignment: {
             lesson: {
-              select: {
-                title: true,
-                module: {
-                  select: {
-                    course: {
-                      select: {
-                        title: true,
+              module: {
+                course: {
+                  lecturers: {
+                    some: {
+                      lecturerId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          status: "SUBMITTED",
+          grade: null,
+        },
+      }),
+
+      // Get recent submissions requiring grading
+      prisma.assignmentSubmission.findMany({
+        where: {
+          assignment: {
+            lesson: {
+              module: {
+                course: {
+                  lecturers: {
+                    some: {
+                      lecturerId,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          status: "SUBMITTED",
+          grade: null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          assignment: {
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              maxPoints: true,
+              lesson: {
+                select: {
+                  title: true,
+                  module: {
+                    select: {
+                      course: {
+                        select: {
+                          title: true,
+                        },
                       },
                     },
                   },
@@ -174,12 +185,12 @@ export async function GET() {
             },
           },
         },
-      },
-      orderBy: {
-        submittedAt: "asc",
-      },
-      take: 10,
-    });
+        orderBy: {
+          submittedAt: "asc",
+        },
+        take: 10,
+      }),
+    ]);
 
     return NextResponse.json({
       stats: {
