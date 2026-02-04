@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { auditActions } from "@/lib/audit";
+import { generateSecurePassword } from "@/lib/security";
 
 // GET /api/admin/users/[id] - Get single user
 export async function GET(
@@ -141,10 +142,7 @@ export async function PUT(
     // Handle password reset
     let newPassword: string | undefined;
     if (resetPassword) {
-      newPassword =
-        Math.random().toString(36).slice(-12) +
-        Math.random().toString(36).slice(-12).toUpperCase() +
-        "!@#";
+      newPassword = generateSecurePassword();
       updateData.password = await hash(newPassword, 12);
     }
 

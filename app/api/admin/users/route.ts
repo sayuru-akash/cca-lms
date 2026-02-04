@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { auditActions } from "@/lib/audit";
 import { sendUserCreatedEmail } from "@/lib/resend";
+import { generateSecurePassword } from "@/lib/security";
 
 // GET /api/admin/users - List all users with filters
 export async function GET(request: Request) {
@@ -177,9 +178,7 @@ export async function POST(request: Request) {
 
     // Generate password or use provided one
     const password = generatePassword
-      ? Math.random().toString(36).slice(-12) +
-        Math.random().toString(36).slice(-12).toUpperCase() +
-        "!@#"
+      ? generateSecurePassword()
       : body.password;
 
     if (!password || password.length < 8) {

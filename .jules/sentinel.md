@@ -7,3 +7,8 @@
 **Vulnerability:** The student assignment submission endpoint (`POST /api/student/submissions`) accepted raw HTML in the `content` field without sanitization. This allowed students to inject malicious scripts that would execute when lecturers or admins viewed the submission (Stored XSS).
 **Learning:** Student-facing inputs that allow rich text are high-risk vectors for attacking privileged users (lecturers/admins). Input sanitization must be applied at the API boundary before storage.
 **Prevention:** Applied `sanitizeHtml` from `@/lib/sanitize` to the `content` field in the submission handler, ensuring all scripts and dangerous attributes are stripped while preserving safe formatting.
+
+## 2024-05-23 - Insecure Password Generation
+**Vulnerability:** Admin user creation and password reset endpoints used `Math.random()` to generate temporary passwords. This is cryptographically insecure and predictable, potentially allowing attackers to guess generated passwords if they can observe the state of the RNG.
+**Learning:** `Math.random()` should never be used for security-critical values like passwords or tokens.
+**Prevention:** Use `crypto.getRandomValues()` (Web Crypto API) for all security-sensitive random value generation. Implemented `generateSecurePassword` helper in `lib/security.ts`.
