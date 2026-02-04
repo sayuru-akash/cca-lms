@@ -184,6 +184,34 @@ export default function AnalyticsPage() {
     return "text-terminal-text-muted";
   };
 
+  const fillMissingDates = (
+    data: Array<{ date: Date; count: number }>,
+    days: number = 30,
+  ) => {
+    const result = [];
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+
+    // Create a map of existing data
+    const dataMap = new Map();
+    data.forEach((item) => {
+      const dateKey = format(item.date, "yyyy-MM-dd");
+      dataMap.set(dateKey, item.count);
+    });
+
+    // Fill all dates
+    for (let i = 0; i < days; i++) {
+      const currentDate = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateKey = format(currentDate, "yyyy-MM-dd");
+      result.push({
+        date: currentDate,
+        count: dataMap.get(dateKey) || 0,
+      });
+    }
+
+    return result;
+  };
+
   if (isLoading && !analytics) {
     return (
       <div className="min-h-screen bg-terminal-dark flex items-center justify-center">
@@ -686,11 +714,9 @@ export default function AnalyticsPage() {
                   </div>
                 ) : (
                   <div className="h-48 flex items-end justify-between gap-1 p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50">
-                    {analytics.trends.dailyEnrollments
-                      .slice(-30)
-                      .map((day, index) => {
+                    {fillMissingDates(analytics.trends.dailyEnrollments, 30).map((day, index) => {
                         const maxCount = Math.max(
-                          ...analytics.trends.dailyEnrollments.map(
+                          ...fillMissingDates(analytics.trends.dailyEnrollments, 30).map(
                             (d) => d.count,
                           ),
                         );
@@ -735,11 +761,9 @@ export default function AnalyticsPage() {
                   </div>
                 ) : (
                   <div className="h-48 flex items-end justify-between gap-1 p-4 rounded-lg border border-terminal-green/20 bg-terminal-darker/50">
-                    {analytics.trends.dailyLogins
-                      .slice(-30)
-                      .map((day, index) => {
+                    {fillMissingDates(analytics.trends.dailyLogins, 30).map((day, index) => {
                         const maxCount = Math.max(
-                          ...analytics.trends.dailyLogins.map((d) => d.count),
+                          ...fillMissingDates(analytics.trends.dailyLogins, 30).map((d) => d.count),
                         );
                         const height =
                           maxCount > 0 ? (day.count / maxCount) * 100 : 0;
