@@ -199,17 +199,27 @@ export default function AnalyticsPage() {
     if (active && payload && payload.length) {
       const dataKey = payload[0].dataKey;
       const value = payload[0].value;
-      const labelText =
-        dataKey === "enrollments" ? "enrollments" : "active users";
-
+      let labelText = "";
+      let valueColor = "text-chart-1";
+      if (dataKey === "enrollments") {
+        labelText = "enrollments";
+        valueColor = "text-[hsl(var(--chart-1))]";
+      } else if (dataKey === "logins") {
+        labelText = "active users";
+        valueColor = "text-[hsl(var(--chart-3))]";
+      } else {
+        labelText = dataKey;
+      }
       return (
-        <div className="bg-card border border-border rounded-md p-3 shadow-lg">
-          <p className="font-mono text-sm text-muted-foreground mb-1">
+        <div className="bg-card border border-border rounded-lg p-4 shadow-xl">
+          <p className="font-mono text-xs text-muted-foreground mb-1">
             {format(new Date(label), "MMM dd, yyyy")}
           </p>
-          <p className="font-mono text-sm text-foreground">
-            <span className="font-semibold text-chart-1">{value}</span>{" "}
-            {labelText}
+          <p className="font-mono text-base font-semibold flex items-baseline gap-2">
+            <span className={valueColor}>{value}</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              {labelText}
+            </span>
           </p>
         </div>
       );
@@ -766,6 +776,8 @@ export default function AnalyticsPage() {
                           left: 20,
                           bottom: 5,
                         }}
+                        barGap={6}
+                        barCategoryGap={24}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -788,10 +800,36 @@ export default function AnalyticsPage() {
                           fontFamily="monospace"
                         />
                         <Tooltip content={<CustomTooltip />} />
+                        <defs>
+                          <linearGradient
+                            id="barEnrollGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="hsl(var(--chart-1))"
+                              stopOpacity="0.95"
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="hsl(var(--chart-1))"
+                              stopOpacity="0.7"
+                            />
+                          </linearGradient>
+                        </defs>
                         <Bar
                           dataKey="enrollments"
-                          fill="hsl(var(--chart-1))"
-                          radius={[2, 2, 0, 0]}
+                          fill="url(#barEnrollGradient)"
+                          radius={[8, 8, 8, 8]}
+                          barSize={22}
+                          minPointSize={2}
+                          style={{
+                            filter:
+                              "drop-shadow(0 2px 8px hsl(var(--chart-1) / 0.10))",
+                          }}
                         >
                           {fillMissingDates(
                             analytics.trends.dailyEnrollments,
@@ -801,8 +839,8 @@ export default function AnalyticsPage() {
                               key={`cell-${index}`}
                               fill={
                                 entry.count > 0
-                                  ? "hsl(var(--chart-1))"
-                                  : "hsl(var(--chart-1) / 0.3)"
+                                  ? "url(#barEnrollGradient)"
+                                  : "hsl(var(--chart-1) / 0.18)"
                               }
                             />
                           ))}
@@ -845,6 +883,8 @@ export default function AnalyticsPage() {
                           left: 20,
                           bottom: 5,
                         }}
+                        barGap={6}
+                        barCategoryGap={24}
                       >
                         <CartesianGrid
                           strokeDasharray="3 3"
@@ -867,10 +907,36 @@ export default function AnalyticsPage() {
                           fontFamily="monospace"
                         />
                         <Tooltip content={<CustomTooltip />} />
+                        <defs>
+                          <linearGradient
+                            id="barLoginGradient"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="hsl(var(--chart-3))"
+                              stopOpacity="0.95"
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="hsl(var(--chart-3))"
+                              stopOpacity="0.7"
+                            />
+                          </linearGradient>
+                        </defs>
                         <Bar
                           dataKey="logins"
-                          fill="hsl(var(--chart-3))"
-                          radius={[2, 2, 0, 0]}
+                          fill="url(#barLoginGradient)"
+                          radius={[8, 8, 8, 8]}
+                          barSize={22}
+                          minPointSize={2}
+                          style={{
+                            filter:
+                              "drop-shadow(0 2px 8px hsl(var(--chart-3) / 0.10))",
+                          }}
                         >
                           {fillMissingDates(
                             analytics.trends.dailyLogins,
@@ -880,8 +946,8 @@ export default function AnalyticsPage() {
                               key={`cell-${index}`}
                               fill={
                                 entry.count > 0
-                                  ? "hsl(var(--chart-3))"
-                                  : "hsl(var(--chart-3) / 0.3)"
+                                  ? "url(#barLoginGradient)"
+                                  : "hsl(var(--chart-3) / 0.18)"
                               }
                             />
                           ))}
