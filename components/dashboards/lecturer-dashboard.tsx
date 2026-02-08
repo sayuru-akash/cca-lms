@@ -47,18 +47,6 @@ interface RecentEnrollment {
   progress: number;
 }
 
-interface PendingSubmission {
-  id: string;
-  assignmentId: string;
-  studentName: string;
-  assignmentTitle: string;
-  courseTitle: string;
-  submittedAt: string;
-  dueDate: string;
-  maxPoints: number;
-  isLate: boolean;
-}
-
 export default function LecturerDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalCourses: 0,
@@ -70,9 +58,6 @@ export default function LecturerDashboard() {
   const [myProgrammes, setMyProgrammes] = useState<Course[]>([]);
   const [recentEnrollments, setRecentEnrollments] = useState<
     RecentEnrollment[]
-  >([]);
-  const [pendingSubmissions, setPendingSubmissions] = useState<
-    PendingSubmission[]
   >([]);
   const [loading, setLoading] = useState(true);
 
@@ -88,7 +73,6 @@ export default function LecturerDashboard() {
         setStats(data.stats);
         setMyProgrammes(data.courses);
         setRecentEnrollments(data.recentEnrollments);
-        setPendingSubmissions(data.pendingSubmissions || []);
       }
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -271,61 +255,6 @@ export default function LecturerDashboard() {
           </Card>
         )}
 
-        {/* Pending Submissions */}
-        {pendingSubmissions.length > 0 && (
-          <Card className="border-yellow-500/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-yellow-600">
-                <FileText className="h-5 w-5" />
-                Pending Submissions to Grade
-              </CardTitle>
-              <CardDescription>
-                Student submissions awaiting your review
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {pendingSubmissions.map((submission) => (
-                <div
-                  key={submission.id}
-                  className="flex items-center justify-between p-4 rounded-lg border border-yellow-500/20 bg-yellow-500/5"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-mono font-semibold text-terminal-text">
-                        {submission.assignmentTitle}
-                      </h3>
-                      {submission.isLate && (
-                        <Badge variant="danger" className="text-xs">
-                          Late Submission
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-mono text-terminal-text-muted">
-                        Student: {submission.studentName}
-                      </div>
-                      <div className="text-xs text-terminal-text-muted">
-                        Submitted:{" "}
-                        {new Date(submission.submittedAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/assignments/${submission.assignmentId}/grade/${submission.id}`}
-                  >
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-yellow-500 text-yellow-600 hover:bg-yellow-500/10"
-                    >
-                      Grade Now
-                    </Button>
-                  </Link>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );

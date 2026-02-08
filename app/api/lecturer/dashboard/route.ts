@@ -13,14 +13,13 @@ export async function GET() {
     const lecturerId = session.user.id;
 
     // Parallelize independent queries to improve performance
-    // Bolt: Batched 6 independent DB queries into a single Promise.all
+    // Bolt: Batched 5 independent DB queries into a single Promise.all
     const [
       courses,
       totalStudents,
       totalModules,
       recentEnrollments,
       pendingGrading,
-      pendingSubmissions,
     ] = await Promise.all([
       // Get lecturer's courses from CourseLecturer table
       prisma.course.findMany({
@@ -134,62 +133,6 @@ export async function GET() {
           grade: null,
         },
       }),
-
-      // Get recent submissions requiring grading
-      prisma.assignmentSubmission.findMany({
-        where: {
-          assignment: {
-            lesson: {
-              module: {
-                course: {
-                  lecturers: {
-                    some: {
-                      lecturerId,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          status: "SUBMITTED",
-          grade: null,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          assignment: {
-            select: {
-              id: true,
-              title: true,
-              dueDate: true,
-              maxPoints: true,
-              lesson: {
-                select: {
-                  title: true,
-                  module: {
-                    select: {
-                      course: {
-                        select: {
-                          title: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        orderBy: {
-          submittedAt: "asc",
-        },
-        take: 10,
-      }),
     ]);
 
     return NextResponse.json({
@@ -217,18 +160,6 @@ export async function GET() {
         courseTitle: enrollment.course.title,
         enrolledAt: enrollment.enrolledAt,
         progress: enrollment.progress,
-      })),
-      pendingSubmissions: pendingSubmissions.map((submission) => ({
-        id: submission.id,
-        studentName: submission.user.name,
-        assignmentTitle: submission.assignment.title,
-        courseTitle: submission.assignment.lesson.module.course.title,
-        submittedAt: submission.submittedAt,
-        dueDate: submission.assignment.dueDate,
-        maxPoints: submission.assignment.maxPoints,
-        isLate: submission.submittedAt
-          ? submission.submittedAt > submission.assignment.dueDate
-          : false,
       })),
     });
   } catch (error) {
