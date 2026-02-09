@@ -210,26 +210,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     });
 
-    // Send graded email notification (async, don't block response)
+    // Send graded email notification
     if (status === "GRADED" && grade !== undefined) {
-      setImmediate(async () => {
-        try {
-          await sendAssignmentGradedEmail({
-            studentName:
-              updatedSubmission.user.name || updatedSubmission.user.email,
-            studentEmail: updatedSubmission.user.email,
-            assignmentTitle: updatedSubmission.assignment.title,
-            courseTitle:
-              updatedSubmission.assignment.lesson.module.course.title,
-            grade,
-            maxPoints: updatedSubmission.assignment.maxPoints,
-            feedback: feedback || undefined,
-            assignmentId: updatedSubmission.assignment.id,
-          });
-        } catch (error) {
-          console.error("Failed to send grading notification email:", error);
-        }
-      });
+      try {
+        await sendAssignmentGradedEmail({
+          studentName:
+            updatedSubmission.user.name || updatedSubmission.user.email,
+          studentEmail: updatedSubmission.user.email,
+          assignmentTitle: updatedSubmission.assignment.title,
+          courseTitle:
+            updatedSubmission.assignment.lesson.module.course.title,
+          grade,
+          maxPoints: updatedSubmission.assignment.maxPoints,
+          feedback: feedback || undefined,
+          assignmentId: updatedSubmission.assignment.id,
+        });
+      } catch (error) {
+        console.error("Failed to send grading notification email:", error);
+      }
     }
 
     await createAuditLog({
