@@ -171,13 +171,14 @@ export async function GET(request: Request) {
             id: true,
             title: true,
             status: true,
-            enrollments: {
-              where: {
-                enrolledAt: dateFilter,
-                user: { role: "STUDENT" },
-              },
+            _count: {
               select: {
-                id: true,
+                enrollments: {
+                  where: {
+                    enrolledAt: dateFilter,
+                    user: { role: "STUDENT" },
+                  },
+                },
               },
             },
           },
@@ -189,7 +190,7 @@ export async function GET(request: Request) {
               id: course.id,
               title: course.title,
               status: course.status,
-              enrollments: course.enrollments.length,
+              enrollments: course._count.enrollments,
             }))
             .sort((a, b) => b.enrollments - a.enrollments)
             .slice(0, programmeId ? 1 : 10),
