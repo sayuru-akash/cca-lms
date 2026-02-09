@@ -22,10 +22,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const batchIndex = parseInt(searchParams.get("batch") || "0");
     const batchSize = parseInt(searchParams.get("batchSize") || "5"); // Default 5 files per batch
 
-    // Get assignment with submissions
+    // Get assignment details for authorization (without submissions)
     const assignment = await prisma.assignment.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
         lesson: {
           select: {
             module: {
@@ -39,28 +41,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 },
               },
             },
-          },
-        },
-        assignmentSubmissions: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-              },
-            },
-            attachments: {
-              select: {
-                id: true,
-                fileKey: true,
-                fileName: true,
-                fileSize: true,
-              },
-            },
-          },
-          orderBy: {
-            submittedAt: "desc",
           },
         },
       },
@@ -83,34 +63,73 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Flatten all attachments with student info
-    const allFiles: {
-      fileKey: string;
-      fileName: string;
-      fileSize: number;
-      studentName: string;
-      studentEmail: string;
-      submissionId: string;
-    }[] = [];
+    // Get total count of files for pagination
+    const totalFiles = await prisma.assignmentSubmissionAttachment.count({
+      where: {
+        submission: {
+          assignmentId: id,
+        },
+      },
+    });
 
-    for (const submission of assignment.assignmentSubmissions) {
-      for (const attachment of submission.attachments) {
-        allFiles.push({
-          fileKey: attachment.fileKey,
-          fileName: attachment.fileName,
-          fileSize: attachment.fileSize,
-          studentName: submission.user.name || "Unknown",
-          studentEmail: submission.user.email,
-          submissionId: submission.id,
-        });
-      }
-    }
-
-    const totalFiles = allFiles.length;
+    // Calculate pagination
     const totalBatches = Math.ceil(totalFiles / batchSize);
     const startIndex = batchIndex * batchSize;
+
+    // Fetch only the requested batch of files
+    const attachments = await prisma.assignmentSubmissionAttachment.findMany({
+      where: {
+        submission: {
+          assignmentId: id,
+        },
+      },
+      select: {
+        id: true,
+        fileKey: true,
+        fileName: true,
+        fileSize: true,
+        submission: {
+          select: {
+            id: true,
+            user: {
+              select: {
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        {
+          submission: {
+            submittedAt: "desc",
+          },
+        },
+        {
+          submission: {
+            id: "asc",
+          },
+        },
+        {
+          id: "asc",
+        },
+      ],
+      skip: startIndex,
+      take: batchSize,
+    });
+
+    // Map to expected structure
+    const batchFiles = attachments.map((attachment) => ({
+      fileKey: attachment.fileKey,
+      fileName: attachment.fileName,
+      fileSize: attachment.fileSize,
+      studentName: attachment.submission.user.name || "Unknown",
+      studentEmail: attachment.submission.user.email,
+      submissionId: attachment.submission.id,
+    }));
+
     const endIndex = Math.min(startIndex + batchSize, totalFiles);
-    const batchFiles = allFiles.slice(startIndex, endIndex);
 
     // Generate signed URLs for this batch
     const filesWithUrls = await Promise.all(
