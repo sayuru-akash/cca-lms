@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { createAuditLog } from "./audit";
+import { createAuditLog, createAuditLogs } from "./audit";
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY;
@@ -275,6 +275,8 @@ export async function sendAssignmentDueSoonReminders(
   assignmentData: AssignmentEmailData,
   studentsWithoutSubmission: Array<{ name: string; email: string; id: string }>,
 ) {
+  const successfulEmails: Parameters<typeof createAuditLogs>[0] = [];
+
   const emailPromises = studentsWithoutSubmission.map(async (student) => {
     const dueText = assignmentData.dueDate.toLocaleDateString("en-US", {
       weekday: "long",
@@ -340,7 +342,7 @@ export async function sendAssignmentDueSoonReminders(
         html,
       });
 
-      await createAuditLog({
+      successfulEmails.push({
         action: "EMAIL_SENT",
         userId: student.id,
         entityType: "ASSIGNMENT",
@@ -363,6 +365,10 @@ export async function sendAssignmentDueSoonReminders(
   });
 
   await Promise.allSettled(emailPromises);
+
+  if (successfulEmails.length > 0) {
+    await createAuditLogs(successfulEmails);
+  }
 }
 
 // Email-client compatible CSS styles (Gmail, Outlook, Apple Mail optimized)
